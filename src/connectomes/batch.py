@@ -18,7 +18,7 @@ from shutil import copy
 import logging
 import time
 import platform
-from connectomes.utils import ants_registration
+from connectomes.utils import ants_registration,dsistudio
 from connectomes.utils import INSTALL_DIR,LOG_DIR,ANTS_APPLYWARP,ANTS_DOCKER,ANTS_REG,DSSTUDIO_DOCKER,SCRIPTS_DIR
 
 
@@ -41,11 +41,19 @@ def main(argv):
     logger.setLevel(logging.INFO)
 
 
+    # example running registration
     ants_registration(source_dir=args.dir,out_dir=args.dir,logger=logger,
                       moving_image="T1.nii.gz",fixed_image="ch2.nii.gz",output_prefix="test_")
 
+    # example running dsistudio
+    kwargs = {
+        "dsi_studio --action=":"atk",
+        "--source=":join("data","dwi.nii.gz"),
+        "--bval=":join("data","dwi.bval"),
+        "--bvec=":join("data","dwi.bvec")
+    }
 
-
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=kwargs)
 
 
 if __name__ == "__main__":

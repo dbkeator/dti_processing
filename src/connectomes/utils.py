@@ -57,7 +57,7 @@ def ants_registration(source_dir,out_dir,logger,moving_image,fixed_image,output_
             % join(source_dir, output_prefix + "_Warped.nii.gz"))
 
 
-def dsistudio(source_dir,out_dir,logger,**kwargs):
+def dsistudio(source_dir,out_dir,logger,kwargs):
     '''
     This function runs dsistudio using the Docker image and given the keyword arguments in **kwargs
     :param source_dir: source directory to mount into Docker image
@@ -71,8 +71,9 @@ def dsistudio(source_dir,out_dir,logger,**kwargs):
            out_dir + ":/output", DSSTUDIO_DOCKER]
 
     # add dsistudio-specific keyword arguments
-    for args in kwargs:
-        cmd.append(arg)
+    for key,val in kwargs.items():
+        cmd.append(key)
+        cmd.append(val)
 
     logger.info("command: %s" % subprocess.list2cmdline(cmd))
     result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
