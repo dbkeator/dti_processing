@@ -73,7 +73,10 @@ def dsistudio(source_dir,out_dir,logger,kwargs):
     # add dsistudio-specific keyword arguments
     for key,val in kwargs.items():
         cmd.append(key)
-        cmd.append(val)
+        if key == "--source":
+            cmd.append(join("data",val))
+        
+
 
     logger.info("command: %s" % subprocess.list2cmdline(cmd))
     result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

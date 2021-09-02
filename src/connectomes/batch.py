@@ -48,12 +48,15 @@ def main(argv):
     # example running dsistudio
     kwargs = {
         "dsi_studio --action=":"atk",
-        "--source=":join("data","dwi.nii.gz"),
-        "--bval=":join("data","dwi.bval"),
-        "--bvec=":join("data","dwi.bvec")
+        "--source=":"dwi.nii.gz",
+        "--bval=":"dwi.bval",
+        "--bvec=":"dwi.bvec"
     }
 
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=kwargs)
+
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=kwargs['step1'])
+
+
 
 
 if __name__ == "__main__":
