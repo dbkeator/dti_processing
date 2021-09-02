@@ -130,3 +130,6 @@ dmypy.json
 
 # don't upload NIFTI images
 *.nii.gz
+
+# mac stuff
+.DS_Store
