@@ -32,7 +32,7 @@ def main(argv):
 
     # open log file
     timestr = time.strftime("%Y%m%d-%H%M%S")
-    logger = logging.getLogger('connectomes_batch')
+    logger = logging.getLogger(join(args.dir,'connectomes_batch'))
     #hdlr = logging.FileHandler(join(LOG_DIR, timestr + "_log.txt"))
     hdlr = logging.FileHandler(timestr + "_log.txt")
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -40,11 +40,8 @@ def main(argv):
     logger.addHandler(hdlr)
     logger.setLevel(logging.INFO)
 
-    # test docker registration
-    location = join("/Volumes","homes","dbkeator","Consulting",
-               "Shankle","DTI_Project","Code","StructuralConnectomes","tests","images")
 
-    ants_registration(source_dir=location,out_dir=location,logger=logger,
+    ants_registration(source_dir=args.dir,out_dir=args.dir,logger=logger,
                       moving_image="T1.nii.gz",fixed_image="ch2.nii.gz",output_prefix="test_")
 
 
