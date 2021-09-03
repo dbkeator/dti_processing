@@ -86,7 +86,7 @@ def dsistudio(source_dir,out_dir,logger,kwargs):
 
     #return result
 
-def fsl(source_dir,out_dir,input_file, logger,kwargs,output_file=None):
+def fsl(source_dir,out_dir, logger,kwargs,input_file=None,output_file=None):
     '''
     This function will run a Docker FSL container and run the commands with arguments in kwargs
     :param source_dir: source directory to mount into Docker image

@@ -64,14 +64,26 @@ def main(argv):
     input_file = join("data","T1.nii.gz")
     output_file = join("output","T1_brain.nii.gz")
     bet_command = [
-        "bet",input_file,output_file
+        "bet",input_file,output_file,"-f",0.3,"-g",0,"-m"
     ]
 
     fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,
         output_file=output_file,kwargs=bet_command)
 
+    # example of eddy
+    input_file = join("data", "niftifile.nii")
+    mask_file = join("data", "brain_mask.nii")
+    acq_eddy = join("data", "acq_eddy.txt")
+    index_file = join("data", "index.txt")
+    out_file = join("output","dti_eddycuda_corrected_data")
+    bvec = join("data", "bvec")
+    bval = join("data", "bval")
+    eddy_command = [
+        "eddy", "--imain",input_file,"--mask",mask_file,"--acqp",acq_eddy,
+            "--index",index_file,"--bvecs",bvec, "--bvals",bval,"--out",out_file
+    ]
 
-
+    fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
