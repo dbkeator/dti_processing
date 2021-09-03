@@ -53,6 +53,73 @@ def main(argv):
                       moving_image="T1.nii.gz",fixed_image="ch2.nii.gz",output_prefix="test_")
 
     # example running dsistudio
+
+    kwargs = {
+        "dsi_studio --action=":"atk",
+        "--source=":join("data","dwi.nii.gz"),
+        "--bval=":join("data","dwi.bval"),
+        "--bvec=":join("data","dwi.bvec")
+    }
+    # create source file
+    dsisource = {"dsi_studio --action=":"src",
+              "--source=":join("data","dwi.nii.gz"),
+              "--output=":join("data","src_base.src.gz") ,
+              "--bval=":join("data","dwi.bval"),
+              "--bvec=":join("data","dwi.bvec")
+              }
+    # check src file for quality
+    dsiquality = {"dsi_studio --action=":"qc",
+              "--source=":join("data","src_base_src.gz")
+              }
+    # reconstruct the images (create fib file; QSDR method=7,GQI method = 4)
+    dsirecon = {"dsi_studio --action=":"rec",
+              "--source=":join("data","src_base.src.gz"),
+              "--method=":"7",
+              "--param0=":"1.25",
+              "--param1=":"1",
+              "--half_sphere=":"1",
+              "--odf_order=":"8",
+              "--num_fiber=":"10",
+              "--interpo_method=":"0",
+              "--scheme_balance=":"1",
+              "--check_btable=":"1", 
+              "--other_image=":join("data","1w:T1.nii.gz")
+              }
+    # run robust tractography whole brain
+    dsiruntract = {"dsi_studio --action=":"trk",
+              "--source=":join("data","src_base.src.fib.gz"),
+              "--seed_count=":"10000000",
+              "--threshold_index=":"qa",
+              "--fa_threshold=":"0.00",
+              "--initial_dir=":"0",
+              "--seed_plan=":"0",
+              "--interpolation=":"0",
+              "--thread_count=":"12",
+              "--step_size=":"0",
+              "--turning_angle=":"65",
+              "--smoothing=":".6",
+              "--min_length=":"10", 
+              "--max_length=":"600",
+              "--output=":join("data","count_connect.trk.gz")
+             }
+    # generate connectivity matrix and summary statistics                
+    dsiruntract = {"dsi_studio --action=":"ana",
+              "-tract=":join("data","count_connect.trk.gz"),
+              "--connectivity=":"aal",
+              "--connectivity_value=":"count",
+              "--connectivity_type=":"end",
+              "--output=":join("data","connectivity_countmeasures.txt")
+              }
+                  
+    # visualize tractography first     
+    dsivisualize = {"dsi_studio --action=":"vis",
+            "--source=":join("data","src_base.src.fib.gz"),
+            "--track=":"count_connect.trk.gz", 
+            "--cmd=":"set_view,2+save_image,tractography1.jpg,1024 800"            
+            }
+    
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=kwargs)
+
     # set up arguments to dsi_studio
     dsistudio_commands = [
 
@@ -89,6 +156,7 @@ def main(argv):
         "eddy", "--imain",input_file,"--mask",mask_file,"--acqp",acq_eddy,
             "--index",index_file,"--bvecs",bvec, "--bvals",bval,"--out",out_file
     ]
+
 
     fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
 
