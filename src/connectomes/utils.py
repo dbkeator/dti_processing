@@ -13,7 +13,8 @@ if platform.system() == 'Darwin':
     SCRIPTS_DIR = join(INSTALL_DIR,"scripts")
     ANTS_REG = "antsRegistrationSyn.sh"
     ANTS_APPLYWARP = "antsApplyTransform.sh"
-    DSSTUDIO_DOCKER = join("dsistudio/dsistudio:latest")
+    DSSTUDIO_DOCKER = "dsistudio/dsistudio:latest"
+    FSL = "brainlife/fsl"
 
 elif platform.system() == 'Linux':
     INSTALL_DIR = "/usr/local/bin/connectomes"
@@ -22,7 +23,8 @@ elif platform.system() == 'Linux':
     SCRIPTS_DIR = join(INSTALL_DIR,"scripts")
     ANTS_REG = "antsRegistrationSyn.sh"
     ANTS_APPLYWARP = "antsApplyTransform.sh"
-    DSSTUDIO_DOCKER = join("dsistudio/dsistudio:latest")
+    DSSTUDIO_DOCKER = "dsistudio/dsistudio:latest"
+    FSL = "brainlife/fsl"
 
 else:
     print("ERROR: Unsupported Platform: %s" % platform.system())
@@ -38,23 +40,26 @@ def ants_registration(source_dir,out_dir,logger,moving_image,fixed_image,output_
     :param moving_image: NIfTI formatted image to register
     :param fixed_image: NIfTI formatted target image
     :param output_prefix: ANTS prefix to add to output of registration
-    :return:
+    :return: Result of command
     '''
 
 
 
-    cmd = ["docker", "run", "-v", source_dir + ":/data", "-v",
+    cmd = ["docker", "run", "--rm","-v", source_dir + ":/data", "-v",
            SCRIPTS_DIR + ":/scripts", "-v",
            out_dir + ":/output", ANTS_DOCKER, "sh", join("scripts", ANTS_REG),
            join("data", fixed_image),
            join("data", moving_image), join("output", output_prefix + "_")]
 
     logger.info("command: %s" % subprocess.list2cmdline(cmd))
-    result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    #result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    # checks if the output files were created else writes and error to the logger
     if not isfile(join(out_dir, output_prefix + "_Warped.nii.gz")):
-        logger.error("ERROR: registration failure for file: %s"
+        logger.error("registration failure for file: %s"
             % join(source_dir, output_prefix + "_Warped.nii.gz"))
+
+    #return result
 
 
 def dsistudio(source_dir,out_dir,logger,kwargs):
@@ -62,22 +67,48 @@ def dsistudio(source_dir,out_dir,logger,kwargs):
     This function runs dsistudio using the Docker image and given the keyword arguments in **kwargs
     :param source_dir: source directory to mount into Docker image
     :param out_dir: output directory to mount into Docker image
+    :param logger: log file object
     :param kwargs: keyworded arguments to dsistudio
-    :return:
+    :return:Result of command
     '''
 
     # begin building docker command string
-    cmd = ["docker", "run", "-v", source_dir + ":/data", "-v",
+    cmd = ["docker", "run", "--rm","-v", source_dir + ":/data", "-v",
            out_dir + ":/output", DSSTUDIO_DOCKER]
 
     # add dsistudio-specific keyword arguments
-    for key,val in kwargs.items():
-        cmd.append(key)
-        if key == "--source":
-            cmd.append(join("data",val))
-        
+    for val in kwargs:
+        cmd.append(val)
+
+
+    logger.info("command: %s" % subprocess.list2cmdline(cmd))
+    #result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    #return result
+
+def fsl(source_dir,out_dir,input_file, logger,kwargs,output_file=None):
+    '''
+    This function will run a Docker FSL container and run the commands with arguments in kwargs
+    :param source_dir: source directory to mount into Docker image
+    :param out_dir: output directory to mount into Docker image
+    :param input_file: input file name which is located in source_dir
+    :param output_file: (optional) output file name which is written to out_dir
+    :param logger: log file object
+    :param kwargs: keyworded arguments to dsistudio
+    :return: Result of command
+    '''
+
+    # begin building docker command string
+    cmd = ["docker", "run", "--rm", "-v", source_dir + ":/data", "-v",
+           out_dir + ":/output", FSL]
+
+    # add fsl-specific keyword arguments
+    for val in kwargs:
+        cmd.append(val)
+
 
 
     logger.info("command: %s" % subprocess.list2cmdline(cmd))
     result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    return result

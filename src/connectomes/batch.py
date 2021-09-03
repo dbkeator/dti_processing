@@ -18,7 +18,7 @@ from shutil import copy
 import logging
 import time
 import platform
-from connectomes.utils import ants_registration,dsistudio
+from connectomes.utils import ants_registration,dsistudio,fsl
 from connectomes.utils import INSTALL_DIR,LOG_DIR,ANTS_APPLYWARP,ANTS_DOCKER,ANTS_REG,DSSTUDIO_DOCKER,SCRIPTS_DIR
 
 
@@ -46,15 +46,29 @@ def main(argv):
                       moving_image="T1.nii.gz",fixed_image="ch2.nii.gz",output_prefix="test_")
 
     # example running dsistudio
-    kwargs = {
-        "dsi_studio --action=":"atk",
-        "--source=":"dwi.nii.gz",
-        "--bval=":"dwi.bval",
-        "--bvec=":"dwi.bvec"
-    }
+    # set up arguments to dsi_studio
+    dsistudio_commands = [
+
+        "dsi_studio", "--action=atk",
+        "--source="+join("data", "dwi.nii.gz"),
+        "--bval="+join("data", "dwi.bval"),
+        "--bvec="+join("data", "dwi.bvec")
+    ]
+
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsistudio_commands)
 
 
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=kwargs['step1'])
+    # example running fsl
+    # set up arguments to FSL
+    # this gets a little tricky because of different FSL commands
+    input_file = join("data","T1.nii.gz")
+    output_file = join("output","T1_brain.nii.gz")
+    bet_command = [
+        "bet",input_file,output_file
+    ]
+
+    fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,
+        output_file=output_file,kwargs=bet_command)
 
 
 
