@@ -18,7 +18,7 @@ from shutil import copy
 import logging
 import time
 import platform
-from connectomes.utils import ants_registration,dsistudio,fsl
+from connectomes.utils import ants_registration,dsistudio,fsl,dcm2niix
 from connectomes.utils import INSTALL_DIR,LOG_DIR,ANTS_APPLYWARP,ANTS_DOCKER,ANTS_REG,DSSTUDIO_DOCKER,SCRIPTS_DIR
 
 
@@ -39,6 +39,13 @@ def main(argv):
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr)
     logger.setLevel(logging.INFO)
+
+
+    #example dcm2niix
+    source_dir = "/Volumes/homes/dbkeator/Consulting/Shankle/DTI_Project/Code/StructuralConnectomes/tests/images/dicom"
+    dcm2niix(source_dir=source_dir,out_dir=source_dir,logger=logger)
+
+
 
 
     # example running registration
