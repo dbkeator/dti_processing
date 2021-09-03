@@ -18,7 +18,7 @@ from shutil import copy
 import logging
 import time
 import platform
-from connectomes.utils import ants_registration,dsistudio
+from connectomes.utils import ants_registration,dsistudio,fsl,dcm2niix
 from connectomes.utils import INSTALL_DIR,LOG_DIR,ANTS_APPLYWARP,ANTS_DOCKER,ANTS_REG,DSSTUDIO_DOCKER,SCRIPTS_DIR
 
 
@@ -41,11 +41,19 @@ def main(argv):
     logger.setLevel(logging.INFO)
 
 
+    #example dcm2niix
+    source_dir = "/Volumes/homes/dbkeator/Consulting/Shankle/DTI_Project/Code/StructuralConnectomes/tests/images/dicom"
+    dcm2niix(source_dir=source_dir,out_dir=source_dir,logger=logger)
+
+
+
+
     # example running registration
     ants_registration(source_dir=args.dir,out_dir=args.dir,logger=logger,
                       moving_image="T1.nii.gz",fixed_image="ch2.nii.gz",output_prefix="test_")
 
     # example running dsistudio
+
     kwargs = {
         "dsi_studio --action=":"atk",
         "--source=":join("data","dwi.nii.gz"),
@@ -112,6 +120,45 @@ def main(argv):
     
     dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=kwargs)
 
+    # set up arguments to dsi_studio
+    dsistudio_commands = [
+
+        "dsi_studio", "--action=atk",
+        "--source="+join("data", "dwi.nii.gz"),
+        "--bval="+join("data", "dwi.bval"),
+        "--bvec="+join("data", "dwi.bvec")
+    ]
+
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsistudio_commands)
+
+
+    # example running fsl
+    # set up arguments to FSL
+    # this gets a little tricky because of different FSL commands
+    input_file = join("data","T1.nii.gz")
+    output_file = join("output","T1_brain.nii.gz")
+    bet_command = [
+        "bet",input_file,output_file,"-f",0.3,"-g",0,"-m"
+    ]
+
+    fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,
+        output_file=output_file,kwargs=bet_command)
+
+    # example of eddy
+    input_file = join("data", "niftifile.nii")
+    mask_file = join("data", "brain_mask.nii")
+    acq_eddy = join("data", "acq_eddy.txt")
+    index_file = join("data", "index.txt")
+    out_file = join("output","dti_eddycuda_corrected_data")
+    bvec = join("data", "bvec")
+    bval = join("data", "bval")
+    eddy_command = [
+        "eddy", "--imain",input_file,"--mask",mask_file,"--acqp",acq_eddy,
+            "--index",index_file,"--bvecs",bvec, "--bvals",bval,"--out",out_file
+    ]
+
+
+    fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
