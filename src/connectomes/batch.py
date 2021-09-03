@@ -66,37 +66,50 @@ def main(argv):
     # reconstruct the images (create fib file; QSDR method=7,GQI method = 4)
     dsirecon = {"dsi_studio --action=":"rec",
               "--source=":join("data","src_base.src.gz"),
-              "--method=":join("data:","7"),
-              "--param0=":join("data","1.25"),
-              "--param1=":join("data","1"),
-              "--half_sphere=":join("data","1"),
-              "--odf_order=":join("data","8"),
-              "--num_fiber=":join("data","10"),
-              "--interpo_method=":join("data","0"),
-              "--scheme_balance=":join("data","1"),
-              "--check_btable=":join("data","1"), 
-              "--other_image=":joint("data","1w:T1.nii.gz")
+              "--method=":"7",
+              "--param0=":"1.25",
+              "--param1=":"1",
+              "--half_sphere=":"1",
+              "--odf_order=":"8",
+              "--num_fiber=":"10",
+              "--interpo_method=":"0",
+              "--scheme_balance=":"1",
+              "--check_btable=":"1", 
+              "--other_image=":join("data","1w:T1.nii.gz")
               }
     # run robust tractography whole brain
     dsiruntract = {"dsi_studio --action=":"trk",
-                   
-                   
-   
-  ##############Run whole brain Tractography with 10 million seeds 
-    dsi_studio --action= trk --method=0 --seed_count=10000000--threshold_index=qa --fa_threshold=0.00--initial_dir=0--seed_plan=0--interpolation=0--thread_count=12--step_size=0 --turning_angle=65 --smoothing=.6 --min_length=10 --max_length=600 --output=count_connect.trk.gz
-    ##############Run connectivity analysis with AAL atlas counting streamlines ending in regions 
-    dsi_studio --action= ana --tract=count_connect.trk.gz --connectivity=aal --connectivity_value=count --connectivity_type=end --output=connectivity_countmeasures.txt
-    ##############################################Visualize tracts
-    dsi_studio --action=vis --source=$arr --track="count_connect.trk.gz" --cmd="set_view,2+save_image,tractography1.jpg,1024 800"
-    dsi_studio --action=vis --source=$arr --track="count_connect.trk.gz" --cmd="slice_off+set_view,2+save_image,tractography2.jpg,1024 800"	
-    dsi_studio --action=vis --source=$arr --track="count_connect.trk.gz" --cmd="set_view,1+save_image,tractography3.jpg,1024 800"
-    dsi_studio --action=vis --source=$arr --track="count_connect.trk.gz" --cmd="slice_off+set_view,1+save_image,tractography4.jpg,1024 800"
-    ########################################################################################################
-    ####################################################Prepare data for FA Difference Maps (Longitudinal Data)####################################################
-    ########################################################################################################
-    #produce FA maps here
-    dtifit --data <scan.ii> -o FAdata -m <brain_mask.nii> -bvec *bvec -bval *bval
-
+              "--source=":join("data","src_base.src.fib.gz"),
+              "--seed_count=":"10000000",
+              "--threshold_index=":"qa",
+              "--fa_threshold=":"0.00",
+              "--initial_dir=":"0",
+              "--seed_plan=":"0",
+              "--interpolation=":"0",
+              "--thread_count=":"12",
+              "--step_size=":"0",
+              "--turning_angle=":"65",
+              "--smoothing=":".6",
+              "--min_length=":"10", 
+              "--max_length=":"600",
+              "--output=":join("data","count_connect.trk.gz")
+             }
+    # generate connectivity matrix and summary statistics                
+    dsiruntract = {"dsi_studio --action=":"ana",
+              "-tract=":join("data","count_connect.trk.gz"),
+              "--connectivity=":"aal",
+              "--connectivity_value=":"count",
+              "--connectivity_type=":"end",
+              "--output=":join("data","connectivity_countmeasures.txt")
+              }
+                  
+    # visualize tractography first     
+    dsivisualize = {"dsi_studio --action=":"vis",
+            "--source=":join("data","src_base.src.fib.gz"),
+            "--track=":"count_connect.trk.gz", 
+            "--cmd=":"set_view,2+save_image,tractography1.jpg,1024 800"            
+            }
+    
     dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=kwargs)
 
 
