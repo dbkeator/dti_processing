@@ -128,6 +128,10 @@ def find_convert_images(source_dir, out_dir, logger,convert=False):
                 output_dict['dti']['nifti'] = nifti_file
                 bval_max = len(content_list)
 
+    if len(output_dict['dti']==0) or len(output_dict['structural']==0):
+        logger.error("No DTI or structural scans found in: %s" %source_dir)
+        logger.error("Unable to continue...")
+
     return output_dict
 
 
