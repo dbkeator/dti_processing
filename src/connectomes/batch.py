@@ -1,6 +1,6 @@
 import sys
 import os
-from os import system,mkdir,remove
+from os import system,makedirs
 from os.path import dirname, splitext,basename,isfile,isdir,join
 from argparse import ArgumentParser
 import datetime
@@ -19,8 +19,7 @@ import logging
 import time
 import platform
 from connectomes.utils import ants_registration,dsistudio,fsl,dcm2niix,find_convert_images
-from connectomes.utils import INSTALL_DIR,LOG_DIR,ANTS_APPLYWARP,ANTS_DOCKER,ANTS_REG,DSSTUDIO_DOCKER,SCRIPTS_DIR
-
+from connectomes.dti import process_dti
 
 def main(argv):
     parser = ArgumentParser(description='This software will run structural connectome processing in batch mode')
@@ -42,9 +41,11 @@ def main(argv):
 
 
     # find structural and DTI images
-    image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=True)
+    image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=False)
 
 
+    # start diffusion processing
+    process_dti(image_dict=image_dict,logger=logger)
 
 
     # example running registration
@@ -130,8 +131,9 @@ def main(argv):
     # example running fsl
     # set up arguments to FSL
     # this gets a little tricky because of different FSL commands
-    input_file = join("data","T1.nii.gz")
-    output_file = join("output","T1_brain.nii.gz")
+    input_file = join("data",image_dict["structural"]["nifti"])
+    output_file = join("output",splitext(basename(image_dict["structural"]["nifti"]))[0] +
+                       "_brain.nii.gz")
     bet_command = [
         "bet",input_file,output_file,"-f",0.3,"-g",0,"-m"
     ]

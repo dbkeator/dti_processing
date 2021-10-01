@@ -119,6 +119,8 @@ def find_convert_images(source_dir, out_dir, logger,convert=False):
             # make sure all the other necessary files we need exist else skip
             bvec_file = os.path.splitext(file)[0] + '.bvec'
             nifti_file = os.path.splitext(file)[0] + '.nii'
+            json_file = os.path.splitext(file)[0] + '.json'
+
             if (not isfile(bvec_file)) or (not isfile(nifti_file)):
                 continue
             else:
@@ -126,9 +128,11 @@ def find_convert_images(source_dir, out_dir, logger,convert=False):
                 output_dict['dti']['bval'] = file
                 output_dict['dti']['bvec'] = bvec_file
                 output_dict['dti']['nifti'] = nifti_file
+                output_dict['dti']['json'] = json_file
+
                 bval_max = len(content_list)
 
-    if len(output_dict['dti']==0) or len(output_dict['structural']==0):
+    if (len(output_dict['dti'])==0) or (len(output_dict['structural'])==0):
         logger.error("No DTI or structural scans found in: %s" %source_dir)
         logger.error("Unable to continue...")
 
