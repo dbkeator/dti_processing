@@ -60,11 +60,17 @@ def find_convert_images(source_dir, out_dir, logger,convert=False):
     output_dict['structural']={}
     output_dict['dti'] = {}
 
+    logger.info("function: find_convert_images")
+
     if convert:
+        logger.info("converting dicom images with dcm2niix...")
         # convert all images in source_dir
         dcm2niix(source_dir=source_dir,logger=logger)
+    else:
+        logger.info("skipping dicom conversion...")
 
     # get list of json, nifti, and bval/bvec options
+    logger.info("getting list of nifti, bval, bvec, and json files...")
     json_files = glob2.glob(join(out_dir, "**", "*.json"))
     bval_files = glob2.glob(join(out_dir, "**", "*.bval"))
     bvec_files = glob2.glob(join(out_dir, "**", "*.bvec"))
@@ -136,6 +142,7 @@ def dcm2niix(source_dir,logger,source_file=None):
         :return: Result of command
     '''
 
+    logger.info("function: dcm2niix")
 
     # running dcm2niix on whole directory
     if source_file == None:
@@ -167,6 +174,7 @@ def ants_registration(source_dir,out_dir,logger,moving_image,fixed_image,output_
     :return: Result of command
     '''
 
+    logger.info("function: ants_registration")
 
 
     cmd = ["docker", "run", "--rm","-v", source_dir + ":/data", "-v",
@@ -195,6 +203,7 @@ def dsistudio(source_dir,out_dir,logger,kwargs):
     :param kwargs: keyworded arguments to dsistudio
     :return:Result of command
     '''
+    logger.info("function: dsistudio")
 
     # begin building docker command string
     cmd = ["docker", "run", "--rm","-v", source_dir + ":/data", "-v",
@@ -221,6 +230,9 @@ def fsl(source_dir,out_dir, logger,kwargs,input_file=None,output_file=None):
     :param kwargs: keyworded arguments to dsistudio
     :return: Result of command
     '''
+
+    logger.info("function: fsl")
+
 
     # begin building docker command string
     cmd = ["docker", "run", "--rm", "-v", source_dir + ":/data", "-v",
