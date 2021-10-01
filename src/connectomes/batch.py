@@ -18,7 +18,7 @@ from shutil import copy
 import logging
 import time
 import platform
-from connectomes.utils import ants_registration,dsistudio,fsl,dcm2niix
+from connectomes.utils import ants_registration,dsistudio,fsl,dcm2niix,find_convert_images
 from connectomes.utils import INSTALL_DIR,LOG_DIR,ANTS_APPLYWARP,ANTS_DOCKER,ANTS_REG,DSSTUDIO_DOCKER,SCRIPTS_DIR
 
 
@@ -34,16 +34,15 @@ def main(argv):
     timestr = time.strftime("%Y%m%d-%H%M%S")
     logger = logging.getLogger(join(args.dir,'connectomes_batch'))
     #hdlr = logging.FileHandler(join(LOG_DIR, timestr + "_log.txt"))
-    hdlr = logging.FileHandler(timestr + "_log.txt")
+    hdlr = logging.FileHandler(join(args.dir,'connectomes_batch_' + timestr + "_log.txt"))
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr)
     logger.setLevel(logging.INFO)
 
 
-    #example dcm2niix
-    source_dir = "/Volumes/homes/dbkeator/Consulting/Shankle/DTI_Project/Code/StructuralConnectomes/tests/images/dicom"
-    dcm2niix(source_dir=source_dir,out_dir=source_dir,logger=logger)
+    # find structural and DTI images
+    image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=True)
 
 
 

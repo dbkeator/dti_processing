@@ -1,9 +1,19 @@
 import os,sys
+from os import system
 from os.path import join,isfile
 import subprocess
 from subprocess import PIPE
 
 import platform
+import glob2
+import json
+
+try:
+    import nibabel as nib
+except ImportError:
+    print("trying to install required module: nibabel")
+    system('python -m pip install --upgrade pip nibabel')
+    import nibabel as nib
 
 if platform.system() == 'Darwin':
     #INSTALL_DIR = "/Applications/connectomes"
@@ -31,12 +41,95 @@ elif platform.system() == 'Linux':
 else:
     print("ERROR: Unsupported Platform: %s" % platform.system())
 
-def dcm2niix(source_dir,out_dir,logger,source_file=None):
+
+def find_convert_images(source_dir, out_dir, logger,convert=False):
+    '''
+    This function will convert all the DICOM images in source_dir and store them in out_dir. It will
+    then figure out which images are the best structural scan and DTI scan with the most directions
+    and return the associated filenames as a dictionary.
+    :param source_dir: directory containing DICOM images or sub-directories with DICOM images
+    :param out_dir: directory to store NifTI images
+    :param logger: log file
+    :param convert: optional parameter which will do dcm2niix conversion if True
+    :return: dictionary: dict['structural']['nifti'],dict['structural']['json'], dict['dti']['nifti'],
+        dict['dti']['json'], dict['dti']['bval'], dict['dti']['bvec']
+    '''
+
+    # set up output dictionary
+    output_dict = {}
+    output_dict['structural']={}
+    output_dict['dti'] = {}
+
+    if convert:
+        # convert all images in source_dir
+        dcm2niix(source_dir=source_dir,logger=logger)
+
+    # get list of json, nifti, and bval/bvec options
+    json_files = glob2.glob(join(out_dir, "**", "*.json"))
+    bval_files = glob2.glob(join(out_dir, "**", "*.bval"))
+    bvec_files = glob2.glob(join(out_dir, "**", "*.bvec"))
+    nifti_files = glob2.glob(join(out_dir, "**", "*.nii"))
+
+
+
+    # find MPRAGE with smallest voxel size and as close to isotropic as possible
+    json_mprage = [s for s in json_files if ("MPRAGE" or "mprage") in s]
+
+    # loop through json files, load them and ignore ones that don't have "ShimSetting" key. These
+    # are NeuroQuant processed MPRAGE scans
+    image_matrix= {}
+    for file in json_mprage:
+        with open(file) as fp:
+            file_json = json.load(fp)
+        if sum(file_json["ImageOrientationPatientDICOM"]) == 0.0:
+            continue
+        else:
+            # load NIfTI header and get voxel and image dimensions
+            nifti_img = nib.load(os.path.splitext(file)[0]+'.nii')
+
+            # store matrix x image name
+            image_matrix[os.path.splitext(file)[0]+'.nii'] = ((nifti_img.header.get_data_shape()[0] *
+                    nifti_img.header.get_zooms()[0])*(nifti_img.header.get_data_shape()[1] * nifti_img.header.get_zooms()[1])
+                    * (nifti_img.header.get_data_shape()[2] * nifti_img.header.get_zooms()[2]))
+    # pick which entry in image_matrix is largest
+    max_volume = 0
+    for key,value in image_matrix.items():
+        if image_matrix[key] > max_volume:
+            # store dictionary entry for structural scan and associated json file
+            output_dict['structural']['nifti'] = key
+            output_dict['structural']['json'] = os.path.splitext(key)[0]+'.json'
+            max_volume = image_matrix[key]
+
+    # loop through json files and find best dti scan
+    json_dti = [s for s in bval_files if ("bval" or "BVAL") in s]
+
+    # loop through json_dti bval files and store one with most directions
+    bval_max = 0
+    for file in json_dti:
+        fp = open(file, "r")
+        content = fp.read()
+        content_list = content.split(" ")
+        if len(content_list) > bval_max:
+            # make sure all the other necessary files we need exist else skip
+            bvec_file = os.path.splitext(file)[0] + '.bvec'
+            nifti_file = os.path.splitext(file)[0] + '.nii'
+            if (not isfile(bvec_file)) or (not isfile(nifti_file)):
+                continue
+            else:
+                # store dictionary entry for structural scan and associated json file
+                output_dict['dti']['bval'] = file
+                output_dict['dti']['bvec'] = bvec_file
+                output_dict['dti']['nifti'] = nifti_file
+                bval_max = len(content_list)
+
+    return output_dict
+
+
+def dcm2niix(source_dir,logger,source_file=None):
     '''
         This function will run dcm2niix on the source_dir if source_file == None else it
         will run dcm2niix on the source_file.
         :param source_dir: directory containing images to convert to nifti
-        :param out_dir: directory where results will be written
         :param logger: log to write information to
         :param source_file: if this is defined then the source_file will be converted not the whole
         source_dir.
@@ -47,12 +140,12 @@ def dcm2niix(source_dir,out_dir,logger,source_file=None):
     # running dcm2niix on whole directory
     if source_file == None:
 
-        cmd = ["docker", "run", "--rm","-v", source_dir + ":/data", "-v",
-               out_dir + ":/output", DCM2NIIX,"dcm2niix", "data","output"]
+        cmd = ["docker", "run", "--rm","-v", source_dir + ":/data", DCM2NIIX,"dcm2niix",
+               "data"]
     # else running it on a file
     else:
         cmd = ["docker", "run", "--rm", "-v", source_dir + ":/data", "-v",
-               out_dir + ":/output", DCM2NIIX, "dcm2niix", join("data",source_file), "output"]
+               DCM2NIIX, "dcm2niix", join("data",source_file)]
 
 
     logger.info("command: %s" % subprocess.list2cmdline(cmd))
