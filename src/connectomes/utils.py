@@ -71,11 +71,10 @@ def find_convert_images(source_dir, out_dir, logger,convert=False):
 
     # get list of json, nifti, and bval/bvec options
     logger.info("getting list of nifti, bval, bvec, and json files...")
-    json_files = glob2.glob(join(out_dir, "**", "*.json"))
-    bval_files = glob2.glob(join(out_dir, "**", "*.bval"))
-    bvec_files = glob2.glob(join(out_dir, "**", "*.bvec"))
-    nifti_files = glob2.glob(join(out_dir, "**", "*.nii"))
-
+    json_files = glob2.glob(join(out_dir,"*.json"))
+    bval_files = glob2.glob(join(out_dir,"*.bval"))
+    bvec_files = glob2.glob(join(out_dir,"*.bvec"))
+    nifti_files = glob2.glob(join(out_dir, "*.nii" or "*.nii.gz"))
 
 
     # find MPRAGE with smallest voxel size and as close to isotropic as possible
@@ -250,8 +249,10 @@ def fsl(source_dir,out_dir, logger,kwargs,input_file=None,output_file=None):
     for val in kwargs:
         cmd.append(val)
 
-
-
+    print()
+    print(cmd)
+    print(source_dir)
+    print(out_dir)
     logger.info("command: %s" % subprocess.list2cmdline(cmd))
     result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
