@@ -132,7 +132,19 @@ def main(argv):
         ]
     
     fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
-               
+    
+    #dti fit for FA and MD maps
+    logger.info('Running FSLs DTIfit')   
+    input_file = join("data","dti_eddycuda_corrected_data.nii.gz")
+    output_file = join("output",splitext(basename(image_dict["dti"]["nifti"]))[0] +
+                       "eddy_c_dtifit.nii.gz")
+    dti_fit_command = [
+        "dtifit","-k",input_file,"-r",bvec,"-b",bval,"-m",mask_file,"-o",output_file
+    ]
+
+    fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,
+        output_file=output_file,kwargs=dti_fit_command)
+           
     
  # make src file for quality
     logger.info('Running Make SRC File')
