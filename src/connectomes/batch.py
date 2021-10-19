@@ -43,6 +43,18 @@ def main(argv):
     # find structural and DTI images
     image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=False)
 
+    # example running fsl
+    # set up arguments to FSL
+    # this gets a little tricky because of different FSL commands
+    input_file = join("data", basename(image_dict["dti"]["nifti"]))
+    output_file = join("output", splitext(basename(image_dict["dti"]["nifti"]))[0] +
+                       "_brain.nii.gz")
+    bet_command = [
+        "bet", input_file, output_file, "-f", "0.3", "-g", "0", "-m"
+    ]
+
+    fsl(source_dir=dirname(image_dict["dti"]["nifti"]), out_dir=dirname(image_dict["dti"]["nifti"]), input_file=input_file, logger=logger,
+        output_file=output_file, kwargs=bet_command)
 
     # start diffusion processing
     process_dti(image_dict=image_dict,logger=logger)
