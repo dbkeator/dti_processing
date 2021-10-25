@@ -26,12 +26,44 @@ import time
 import platform
 from utils import ants_registration,dsistudio,fsl,dcm2niix,find_convert_images
 import nibabel as nib
-from dipy.viz import window, actor
-import matplotlib.pyplot as plt
-from PIL import Image
-from fpdf import FPDF
+
+try:
+    import FURY
+except ImportError:
+    print("trying to install required module: FURY")
+    system("python -m pip install --upgrade pip FURY")
+
+try:
+    from dipy.viz import window, actor
+except ImportError:
+    print("trying to install required module: dipy.viz")
+    system("python -m pip install --upgrade pip dipy.viz")
+    from dipy.viz import window, actor
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    print("trying to install required module: matplotlib")
+    system("python -m pip install --upgrade pip matplotlib")
+    import matplotlib.pyplot as plt
+
+try:
+    from PIL import Image
+except ImportError:
+    print("trying to install required module: PIL")
+    system("python -m pip install --upgrade pip PIL")
+    from PIL import Image
+try:
+    from fpdf import FPDF
+except ImportError:
+    print("trying to install required module: fpdf")
+    system("python -m pip install --upgrade pip fpdf")
+    from fpdf import FPDF
+
 from pandas.plotting import table
 #from dti import process_dti
+
+
+
 
 def main(argv):
     parser = ArgumentParser(description='This software will run structural connectome processing in batch mode')
