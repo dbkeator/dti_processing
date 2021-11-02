@@ -94,8 +94,8 @@ def main(argv):
         "bet",input_file,output_file,"-f","0.3","-g","0","-m"
     ]
 
-    fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,
-        output_file=output_file,kwargs=bet_command)
+    #fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,
+    #    output_file=output_file,kwargs=bet_command)
     
     ######create supplementary files to run eddy
     logger.info('Creating Supplementary Files for Eddy')
@@ -121,7 +121,7 @@ def main(argv):
     acqpparamfinal = acqpparamfinal.replace('[', '')
     acqpparamfinal = acqpparamfinal.replace(']', '')
     acqpparamfinal = acqpparamfinal.replace("'", '')
-    acqp = open(args.dir+"acqp_params.txt","w")
+    acqp = open(join(args.dir,"acqp_params.txt"),"w")
     acqp.write(acqpparamfinal)
     acqp.close()
     #create the 
@@ -142,7 +142,7 @@ def main(argv):
     indexfinal = indexfinal.replace(',', '')
     indexfinal = indexfinal.replace('[', '')
     indexfinal = indexfinal.replace(']', '')
-    index= open(args.dir+"index.txt","w")
+    index= open(join(args.dir,"index.txt"),"w")
     index.write(indexfinal)
     index.close()
     
@@ -163,7 +163,7 @@ def main(argv):
                 "--index="+index_file,"--bvecs="+bvec, "--bvals="+bval,"--out="+out_file
         ]
     
-    fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
+#    fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
     
     #dti fit for FA and MD maps
     logger.info('Running FSLs DTIfit')   
@@ -174,8 +174,8 @@ def main(argv):
         "dtifit","-k",input_file,"-r",bvec,"-b",bval,"-m",mask_file,"-o",output_file
     ]
 
-    fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,
-        output_file=output_file,kwargs=dti_fit_command)
+   #fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,
+   #     output_file=output_file,kwargs=dti_fit_command)
            
     
  # make src file for quality
@@ -185,17 +185,17 @@ def main(argv):
     
     dsi_src = ["dsi_studio","--action=src",
                 "--source="+source_file,"--output="+out_file,
-                "--bval="+bval,"--bvec="+bvec
-    ]
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
+                "--bval="+bval,"--bvec="+bvec]
+
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
     
  # check src file for quality
     logger.info('Running Quality Control for SRC')
     source_file = join("data","src_base.src.gz")
     dsiquality = ["dsi_studio","--action=qc",
-                "--source="+source_file
-    ]
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
+                "--source="+source_file]
+
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
     
     # reconstruct the images (create fib file; QSDR method=7,GQI method = 4)
     logger.info('Running QSDR Reconstruction')
@@ -211,16 +211,14 @@ def main(argv):
                   "--num_fiber=10",
                   "--scheme_balance=1",
                   "--check_btable=1",
-                  "--other_image="+other_image
-    ]
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
+                  "--other_image="+other_image]
+
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
     
     # run robust tractography whole brain
     logger.info('Running Whole Brain Tractography Analysis')
-    source_file = glob.glob(args.dir+'*fib.gz')
-    source_file= basename(str(source_file))
-    source_file = source_file.replace("'", '')
-    source_file = source_file.replace("]", '')
+    source_file = glob.glob(join(args.dir,'*fib.gz'))
+    source_file= basename(str(source_file)).replace("'", '').replace("]", '')
     source_file = join("data",source_file)
     output_file = join("output","count_connect.trk.gz")
     dsiruntract = ["dsi_studio","--action=trk",
@@ -237,9 +235,9 @@ def main(argv):
                     "--smoothing=.6",
                     "--min_length=10",
                     "--max_length=600",
-                    "--output="+output_file
-    ]
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
+                    "--output="+output_file]
+
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
     
     
     # generate connectivity matrix and summary statistics
@@ -253,9 +251,9 @@ def main(argv):
                       "--connectivity="+atlas,
                       "--connectivity_value=count",
                       "--connectivity_type=end",
-                      "--output="+output_file
-    ]
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
+                      "--output="+output_file]
+
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
 
     #Generate images of tractography 
     logger.info('Creating Tractography Images')
@@ -326,7 +324,7 @@ def main(argv):
     NIIname.close()
     ###########################Plot and Save Connectivity Matrix######
     logger.info('Generating Connectivity Matrix')
-    conn = pd.read_csv(join(args.dir,'connectivity_countmeasures.txt.FreeSurferDKT.count.end.connectogram.txt'),
+    conn = pd.read_csv(join(args.dir,'connectivity_countmeasures.txt'),
                        sep="\t")
     conn = conn.drop(['data'],axis=1)
     conn.columns = conn.iloc[0]
@@ -343,7 +341,7 @@ def main(argv):
     
     #############Save Efficiency data as file
     logger.info('Generating Efficiency Files')
-    Eff = pd.read_csv(join(args.dir,'connectivity_countmeasures.txt.FreeSurferDKT.count.end.network_measures.txt'),
+    Eff = pd.read_csv(join(args.dir,'connectivity_countmeasures.txt'),
                         sep=" ",header=None)                 
     Ecc = str(Eff.iloc[9:11])
     Ecc = str(Ecc)
