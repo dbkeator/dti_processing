@@ -203,6 +203,9 @@ def main(argv):
 
     #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
     
+    #upload DSIParams file
+   
+    
     # reconstruct the images (create fib file; QSDR method=7,GQI method = 4)
     logger.info('Running QSDR Reconstruction')
     source_file = join("data","src_base.src.gz")
