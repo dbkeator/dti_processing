@@ -72,7 +72,6 @@ from pandas.plotting import table
 
 
 
-
 def main(argv):
     parser = ArgumentParser(description='This software will run structural connectome processing in batch mode')
     parser.add_argument('-dir', dest='dir', required=True, help="Directory to process images from")
@@ -102,7 +101,9 @@ def main(argv):
         "bet",input_file,output_file,"-f","0.3","-g","0","-m"
     ]
 
-    #fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=bet_command)
+
+
+    fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=bet_command)
     
     ######create supplementary files to run eddy
     logger.info('Creating Supplementary Files for Eddy')
@@ -181,7 +182,7 @@ def main(argv):
         "dtifit","-k",input_file,"-r",bvec,"-b",bval,"-m",mask_file,"-o",output_file
     ]
 
-    #fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=dti_fit_command)
+    fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=dti_fit_command)
            
     
  # make src file for quality
@@ -193,7 +194,7 @@ def main(argv):
                 "--source="+source_file,"--output="+out_file,
                 "--bval="+bval,"--bvec="+bvec]
 
-    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
     
  # check src file for quality
     logger.info('Running Quality Control for SRC')
@@ -201,7 +202,7 @@ def main(argv):
     dsiquality = ["dsi_studio","--action=qc",
                 "--source="+source_file]
 
-    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
     
     # reconstruct the images (create fib file; QSDR method=7,GQI method = 4)
     logger.info('Running QSDR Reconstruction')
@@ -219,7 +220,7 @@ def main(argv):
                   "--check_btable=1",
                   "--other_image="+other_image]
 
-    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
     
     # run robust tractography whole brain
     logger.info('Running Whole Brain Tractography Analysis')
@@ -243,13 +244,13 @@ def main(argv):
                     "--max_length=600",
                     "--output="+output_file]
 
-    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
     
     
     # generate connectivity matrix and summary statistics
     logger.info('Running Generate Graph Theory Metrics')
     tract_file = join("data","count_connect.trk.gz")
-    atlas=join("data","FreeSurferDKT.nii.gz")
+    atlas=join("opt","dsi-studio","dsi_studio_64","atlas","ICBM152","FreeSurferDKT.nii.gz")
     output_file = join("output","connectivity_countmeasures.txt")
     dsi_conn_comp = ["dsi_studio", "--action=ana",
                      "--source="+source_file,
@@ -259,7 +260,7 @@ def main(argv):
                       "--connectivity_type=end",
                       "--output="+output_file]
 
-    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
 
     #Generate images of tractography 
     logger.info('Creating Tractography Images')
@@ -330,7 +331,7 @@ def main(argv):
     NIIname.close()
     ###########################Plot and Save Connectivity Matrix######
     logger.info('Generating Connectivity Matrix')
-    conn = pd.read_csv(join(args.dir,'connectivity_countmeasures.txt'),
+    conn = pd.read_csv(join(args.dir,'connectivity_countmeasures.txt.FreeSurferDKT.count.end.connectogram.txt'),
                        sep="\t")
     conn = conn.drop(['data'],axis=1)
     conn.columns = conn.iloc[0]
@@ -347,8 +348,8 @@ def main(argv):
     
     #############Save Efficiency data as file
     logger.info('Generating Efficiency Files')
-    Eff = pd.read_csv(join(args.dir,'connectivity_countmeasures.txt'),
-                        sep=" ",header=None)                 
+    Eff = pd.read_csv(join(args.dir,'connectivity_countmeasures.txt.FreeSurferDKT.count.end.network_measures.txt'),
+                        sep=" ",header=None)
     Ecc = str(Eff.iloc[9:11])
     Ecc = str(Ecc)
     Ecc = Ecc.replace('\\t', ' ')
