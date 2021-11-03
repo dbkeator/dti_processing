@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Nov  2 12:11:16 2021
+
+@author: stevegranger
+"""
+
 import sys
 import os
 import io
@@ -26,12 +34,44 @@ import time
 import platform
 from utils import ants_registration,dsistudio,fsl,dcm2niix,find_convert_images
 import nibabel as nib
-from dipy.viz import window, actor
-import matplotlib.pyplot as plt
-from PIL import Image
-from fpdf import FPDF
+
+try:
+    import FURY
+except ImportError:
+    print("trying to install required module: FURY")
+    system("python -m pip install --upgrade pip FURY")
+
+try:
+    from dipy.viz import window, actor, ui
+except ImportError:
+    print("trying to install required module: dipy.viz")
+    system("python -m pip install --upgrade pip dipy.viz")
+    from dipy.viz import window, actor, ui
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    print("trying to install required module: matplotlib")
+    system("python -m pip install --upgrade pip matplotlib")
+    import matplotlib.pyplot as plt
+
+try:
+    from PIL import Image
+except ImportError:
+    print("trying to install required module: PIL")
+    system("python -m pip install --upgrade pip PIL")
+    from PIL import Image
+try:
+    from fpdf import FPDF
+except ImportError:
+    print("trying to install required module: fpdf")
+    system("python -m pip install --upgrade pip fpdf")
+    from fpdf import FPDF
+
 from pandas.plotting import table
 #from dti import process_dti
+
+
+
 
 def main(argv):
     parser = ArgumentParser(description='This software will run structural connectome processing in batch mode')
@@ -62,8 +102,7 @@ def main(argv):
         "bet",input_file,output_file,"-f","0.3","-g","0","-m"
     ]
 
-    fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,
-        output_file=output_file,kwargs=bet_command)
+    #fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=bet_command)
     
     ######create supplementary files to run eddy
     logger.info('Creating Supplementary Files for Eddy')
@@ -89,7 +128,7 @@ def main(argv):
     acqpparamfinal = acqpparamfinal.replace('[', '')
     acqpparamfinal = acqpparamfinal.replace(']', '')
     acqpparamfinal = acqpparamfinal.replace("'", '')
-    acqp = open(args.dir+"acqp_params.txt","w")
+    acqp = open(join(args.dir,"acqp_params.txt"),"w")
     acqp.write(acqpparamfinal)
     acqp.close()
     #create the 
@@ -110,7 +149,7 @@ def main(argv):
     indexfinal = indexfinal.replace(',', '')
     indexfinal = indexfinal.replace('[', '')
     indexfinal = indexfinal.replace(']', '')
-    index= open(args.dir+"index.txt","w")
+    index= open(join(args.dir,"index.txt"),"w")
     index.write(indexfinal)
     index.close()
     
@@ -131,7 +170,7 @@ def main(argv):
                 "--index="+index_file,"--bvecs="+bvec, "--bvals="+bval,"--out="+out_file
         ]
     
-    fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
+    #fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
     
     #dti fit for FA and MD maps
     logger.info('Running FSLs DTIfit')   
@@ -142,8 +181,7 @@ def main(argv):
         "dtifit","-k",input_file,"-r",bvec,"-b",bval,"-m",mask_file,"-o",output_file
     ]
 
-    fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,
-        output_file=output_file,kwargs=dti_fit_command)
+    #fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=dti_fit_command)
            
     
  # make src file for quality
@@ -153,17 +191,17 @@ def main(argv):
     
     dsi_src = ["dsi_studio","--action=src",
                 "--source="+source_file,"--output="+out_file,
-                "--bval="+bval,"--bvec="+bvec
-    ]
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
+                "--bval="+bval,"--bvec="+bvec]
+
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
     
  # check src file for quality
     logger.info('Running Quality Control for SRC')
     source_file = join("data","src_base.src.gz")
     dsiquality = ["dsi_studio","--action=qc",
-                "--source="+source_file
-    ]
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
+                "--source="+source_file]
+
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
     
     # reconstruct the images (create fib file; QSDR method=7,GQI method = 4)
     logger.info('Running QSDR Reconstruction')
@@ -179,16 +217,14 @@ def main(argv):
                   "--num_fiber=10",
                   "--scheme_balance=1",
                   "--check_btable=1",
-                  "--other_image="+other_image
-    ]
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
+                  "--other_image="+other_image]
+
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
     
     # run robust tractography whole brain
     logger.info('Running Whole Brain Tractography Analysis')
-    source_file = glob.glob(args.dir+'*fib.gz')
-    source_file= basename(str(source_file))
-    source_file = source_file.replace("'", '')
-    source_file = source_file.replace("]", '')
+    source_file = glob.glob(join(args.dir,'*fib.gz'))
+    source_file= basename(str(source_file)).replace("'", '').replace("]", '')
     source_file = join("data",source_file)
     output_file = join("output","count_connect.trk.gz")
     dsiruntract = ["dsi_studio","--action=trk",
@@ -205,9 +241,9 @@ def main(argv):
                     "--smoothing=.6",
                     "--min_length=10",
                     "--max_length=600",
-                    "--output="+output_file
-    ]
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
+                    "--output="+output_file]
+
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
     
     
     # generate connectivity matrix and summary statistics
@@ -221,9 +257,9 @@ def main(argv):
                       "--connectivity="+atlas,
                       "--connectivity_value=count",
                       "--connectivity_type=end",
-                      "--output="+output_file
-    ]
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
+                      "--output="+output_file]
+
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
 
     #Generate images of tractography 
     logger.info('Creating Tractography Images')
@@ -338,6 +374,134 @@ def main(argv):
     table1.set_fontsize(300)
     table1.scale(8, 8)
     plt.savefig(join(args.dir,'QC_Table.jpg'),bbox_inches='tight')
+    
+    ############Creat Mosaic of T1 image
+    fname_t1 = join(args.dir,image_dict["structural"]["nifti"])
+    img = nib.load(fname_t1)
+    data = img.get_data()
+    affine = img.affine
+    Scene = window.Scene()
+    Scene.background((0.5, 0.5, 0.5))
+    mean, std = data[data > 0].mean(), data[data > 0].std()
+    value_range = (mean - 3 * std, mean + 3 * std)
+    slice_actor = actor.slicer(data, affine, value_range)
+    Scene.add(slice_actor)
+    slice_actor2 = slice_actor.copy()
+    slice_actor2.display(slice_actor2.shape[0]//2, None, None)
+    Scene.add(slice_actor2)
+    Scene.reset_camera()
+    Scene.zoom(1.4)
+    show_m = window.ShowManager(Scene, size=(1200, 900))
+    show_m.initialize()
+    label_position = ui.TextBlock2D(text='Position:')
+    label_value = ui.TextBlock2D(text='Value:')
+    result_position = ui.TextBlock2D(text='')
+    result_value = ui.TextBlock2D(text='')
+    panel_picking = ui.Panel2D(size=(250, 125),
+                               position=(20, 20),
+                               color=(0, 0, 0),
+                               opacity=0,
+                               align="left")
+    panel_picking.add_element(label_position, (0.1, 0.55))
+    panel_picking.add_element(label_value, (0.1, 0.25))
+    panel_picking.add_element(result_position, (0.45, 0.55))
+    panel_picking.add_element(result_value, (0.45, 0.25))
+    Scene.add(panel_picking)
+    Scene.clear()
+    Scene.projection('parallel')
+    result_position.message = ''
+    result_value.message = ''
+    #show_m_mosaic = window.ShowManager(Scene, size=(1200, 900))
+    #show_m_mosaic.initialize()
+    cnt = 100
+    X, Y, Z = slice_actor.shape[:3]
+    rows = 10
+    cols = 4
+    border = 70
+    for j in range(rows):
+        for i in range(cols):
+            slice_mosaic = slice_actor.copy()
+            slice_mosaic.display(None, None, cnt)
+            slice_mosaic.SetPosition((X + border) * i,
+                                     5 * cols * (Y + border) - (Y + border) * j,
+                                     0)
+            slice_mosaic.SetInterpolate(False)
+            #slice_mosaic.AddObserver('LeftButtonPressEvent',left_click_callback_mosaic,1.0)
+            Scene.add(slice_mosaic)
+            cnt += 1
+            if cnt > Z:
+                break
+        if cnt > Z:
+            break
+    Scene.reset_camera()
+    Scene.zoom(1.0)
+    window.record(Scene, out_path=join(args.dir,'mosaic_T1.png'), size=(900, 600),reset_camera=False)
+    
+    
+    #create FA image 
+    fname_t1 = glob.glob(join(args.dir,'*FA.nii.gz'))
+    print(fname_t1)
+    fname_t1= str(fname_t1)
+    fname_t1 = fname_t1.replace("'", '').replace("]", '').replace("[", '')
+    print(fname_t1)
+    img = nib.load(fname_t1)
+    data = img.get_data()
+    affine = img.affine
+    Scene = window.Scene()
+    Scene.background((0.5, 0.5, 0.5))
+    mean, std = data[data > 0].mean(), data[data > 0].std()
+    value_range = (mean - 3 * std, mean + 3 * std)
+    slice_actor = actor.slicer(data, affine, value_range)
+    Scene.add(slice_actor)
+    slice_actor2 = slice_actor.copy()
+    slice_actor2.display(slice_actor2.shape[0]//2, None, None)
+    Scene.add(slice_actor2)
+    Scene.reset_camera()
+    Scene.zoom(1.4)
+    show_m = window.ShowManager(Scene, size=(1200, 900))
+    show_m.initialize()
+    label_position = ui.TextBlock2D(text='Position:')
+    label_value = ui.TextBlock2D(text='Value:')
+    result_position = ui.TextBlock2D(text='')
+    result_value = ui.TextBlock2D(text='')
+    panel_picking = ui.Panel2D(size=(250, 125),
+                               position=(20, 20),
+                               color=(0, 0, 0),
+                               opacity=0.75,
+                               align="left")
+    panel_picking.add_element(label_position, (0.1, 0.55))
+    panel_picking.add_element(label_value, (0.1, 0.25))
+    panel_picking.add_element(result_position, (0.45, 0.55))
+    panel_picking.add_element(result_value, (0.45, 0.25))
+    Scene.add(panel_picking)
+    Scene.clear()
+    Scene.projection('parallel')
+    result_position.message = ''
+    result_value.message = ''
+    cnt = 0
+    X, Y, Z = slice_actor.shape[:3]
+    rows = 10
+    cols = 4
+    border = 70
+    for j in range(rows):
+        for i in range(cols):
+            slice_mosaic = slice_actor.copy()
+            slice_mosaic.display(None, None, cnt)
+            slice_mosaic.SetPosition((X + border) * i,
+                                     5 * cols * (Y + border) - (Y + border) * j,
+                                     0)
+            slice_mosaic.SetInterpolate(False)
+            Scene.add(slice_mosaic)
+            cnt += 1
+            if cnt > Z:
+                break
+        if cnt > Z:
+            break
+    Scene.reset_camera()
+    Scene.zoom(1.0)
+    window.record(Scene, out_path=join(args.dir,'mosaic_FA.png'), size=(900, 600),
+                  reset_camera=False)
+
     
     #Generate PDF File
     ##############create the pdf report
