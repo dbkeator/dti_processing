@@ -34,6 +34,7 @@ import time
 import platform
 from utils import ants_registration,dsistudio,fsl,dcm2niix,find_convert_images
 import nibabel as nib
+import shutil
 
 try:
     import FURY
@@ -70,7 +71,21 @@ except ImportError:
 from pandas.plotting import table
 #from dti import process_dti
 
+key = {"FA" : "Fractional Anisotropy NIFTI Image",
+       "MD" : "Mean Diffusivity NIFTI Image",
+       "Binary_csv": "Binary adjacency (connectivity) matrix of the Freesurfer DKT atlas adjusted by 0.001 of the maximum",
+       "Weighted_csv":"Weighted adjacency (connectivity) matrix of the Freesurfer DKT atlas where weights are equavalent to the number of streamlines connecting each node pair"
+       }
 
+key1 = {"input prefix" : "raw files from given directory",
+        "dti_eddycuda prefix" : "FSLs eddy processed DWI files"
+        "...eddy_c_dtifit.. files" : "Additional Eigenvector/Eigenvalue files from FSLs dtifit function",
+        "count_connect.trk.gz" : "Whole brain tractograph file used for adjacency matrix and graph measures calculation",
+        "index.txt":"index file denoting the parameters for FSL eddy program",
+        
+        
+        
+        }
 
 
 def main(argv):
@@ -232,7 +247,7 @@ def main(argv):
     output_file = join("output","count_connect.trk.gz")
     dsiruntract = ["dsi_studio","--action=trk",
                     "--source="+source_file,
-                    "--seed_count=100000",
+                    "--seed_count=1000000",
                     "--threshold_index=qa",
                     "--fa_threshold=0.00",
                     "--initial_dir=0",
@@ -252,7 +267,7 @@ def main(argv):
     # generate connectivity matrix and summary statistics
     logger.info('Running Generate Graph Theory Metrics')
     tract_file = join("data","count_connect.trk.gz")
-    atlas=join("data","FreeSurferDKT.nii.gz")
+    atlas=join("opt","dsi-studio","dsi_studio_64","atlas","ICBM152","FreeSurferDKT.nii.gz")
     output_file = join("output","connectivity_countmeasures.txt")
     dsi_conn_comp = ["dsi_studio", "--action=ana",
                      "--source="+source_file,
@@ -578,6 +593,48 @@ def main(argv):
     pdf.print_chapter(1, '', '20k_c1.txt')
     pdf.output(join(args.dir,'Report.pdf'), 'F')
     
+    #Sort files
+    file_list = glob.glob(join(args.dir,'*'))
+    
+    os.mkdir(join(args.dir,'Structural_Connectomes'))
+    os.mkdir(join(args.dir,'Structural_Connectomes','Files'))
+    for files in file_list:
+        files= basename(str(files)).replace("'", '').replace("]", '').replace("[",'')
+        shutil.move(join(args.dir,files), join(args.dir,'Structural_Connectomes','Files',files))
+    #move out MPRAGE, FA, MD, and connectivity.txt file to save as csv and add to 'key'
+    outfile = [glob.glob(join(args.dir,'Structural_Connectomes','Files',"*FA.nii.gz")),
+               glob.glob(join(args.dir,'Structural_Connectomes','Files',"*MD.nii.gz")),
+               glob.glob(join(args.dir,'Structural_Connectomes','Files',basename(image_dict["structural"]["nifti"])))
+               ]
+    #print(outfile)
+    for files in outfile:
+        files= basename(str(files)).replace("'", '').replace("]", '').replace("[",'')
+        shutil.move(join(args.dir,'Structural_Connectomes','Files',files), join(args.dir,'Structural_Connectomes',files))
+    
+    #Create formatted Weighted and Binary Adjacency Matrix save as csv files
+    conn = pd.read_csv(join(args.dir,'Structural_Connectomes','Files','connectivity_countmeasures.txt.FreeSurferDKT.count.end.connectogram.txt'),
+                       sep="\t")
+    conn = conn.drop(['data'],axis=1)
+    conn.columns = conn.iloc[0]
+    conn = conn.set_index('data')
+    conn = conn.drop(['data'],axis=0)
+    conn = conn.iloc[:, :-1]
+    conn = conn.apply( pd.to_numeric, errors='coerce')
+    conn.to_csv(join(args.dir,'Structural_Connectomes','Weighted.csv'))
+    maxi = conn.max(numeric_only=True).max()
+    conn[conn < 0.001*maxi] = 0
+    conn[conn > 0.001*maxi] = 1
+    conn.to_csv(join(args.dir,'Structural_Connectomes','Binary.csv'))
+    
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+    
+
+
+
+
+  
+    
+    
+    
