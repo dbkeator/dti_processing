@@ -405,7 +405,7 @@ def main(argv):
     plt.savefig(join(args.dir,'QC_Table.jpg'),bbox_inches='tight')
     
     ############Creat Mosaic of T1 image
-    fname_t1 = join(args.dir,image_dict["structural"]["nifti"])
+    fname_t1 = join(args.dir,basename(image_dict["structural"]["nifti"])) 
     img = nib.load(fname_t1)
     data = img.get_data()
     affine = img.affine
@@ -531,81 +531,7 @@ def main(argv):
     window.record(Scene, out_path=join(args.dir,'mosaic_FA.png'), size=(900, 600),
                   reset_camera=False)
 
-    
-    #Generate PDF File
-    ##############create the pdf report
-    logger.info('Create PDF Report')
-    title = 'Connectivity Analysis Report'
-    today = datetime.date.today()
-    class PDF(FPDF):
-        def header(self):
-            # Arial bold 15
-            self.set_font('Times', 'B', 15)
-            # Calculate width of title and position
-            w = self.get_string_width(title) + 3
-            self.set_x(10)
-            # Colors of frame, background and text
-            self.set_draw_color(0, 0, 150)
-            self.set_fill_color(0, 0, 150)
-            self.set_text_color(255)
-            # Thickness of frame (1 mm)
-            self.set_line_width(1)
-            # Title
-            self.cell(w, 9, title, 1, 1, 'L', 1)
-            self.ln(1)
-            self.cell(180, 0.2, '', 1, 1, 'C')
-            # Line break
-            self.ln(10)
-        def chapter_body(self, name):
-            self.set_font('Times', '', 10)
-            self.text(175,18,str(today))
-            # Read text file
-            with open(join(args.dir,'niftiname.txt'), 'rb') as fh:
-                txt = fh.read().decode('latin-1')
-            # Times 12
-            self.set_font('Times', '', 9)
-            # Output justified text
-            self.multi_cell(0, 5, txt)
-            self.ln()
-            self.image(join(args.dir,'QC_Table.jpg'),10,45,150)
-            self.ln()
-            # Mention in italics
-            #self.set_font('', 'I')
-            #self.text(10,40,'Subject Motion Report')
-            self.image(join(args.dir,'motioncombined.jpg'), 10, 70, 200)
-            self.set_font('Arial', 'B', 10)
-            # Move to the right
-            self.cell(80)
-            # Line break
-            self.ln(20)
-            self.text(10,135,'Tractography Results')
-            self.set_font('Times', '', 9)
-            self.image(join(args.dir,'tractography.jpg'), 10, 140, 180)
-            self.set_font('Arial', 'B', 10)
-            # Move to the right
-            self.cell(80)
-            # Line break
-            self.ln(20)
-            self.text(10,195,'Connectivity Matrix')
-            self.image(join(args.dir,'connectivity_matrix.jpg'), 10, 200, 100)
-            self.set_font('Arial', 'B', 10)
-            # Move to the right
-            self.cell(80)
-            # Line break
-            self.ln(220)
-            with open(join(args.dir,'globalefficiencyonly.txt'), 'rb') as fh:
-                info = fh.read().decode('latin-1')
-            self.set_font('Times', '', 9)
-            self.multi_cell(0, 5, info)
-        def print_chapter(self, num, title, name):
-            self.add_page()
-            self.chapter_body(name)
-    pdf = PDF()
-    pdf.print_chapter(1, '', '20k_c1.txt')
-    pdf.output(join(args.dir,'Report.pdf'), 'F')
-    
-    
-    #
+
     #Create formatted Weighted and Binary Adjacency Matrix save as csv files
     conn = pd.read_csv(join(args.dir,'connectivity_countmeasures.txt.FreeSurferDKT.count.end.connectogram.txt'),
                        sep="\t")
@@ -624,15 +550,17 @@ def main(argv):
     #Create HTML report
     # 1. Set up multiple variables to store the titles, text within the report
     page_title_text='Connectometry Report'
-    title_text = str(image_dict["dti"]["nifti"])
-    text = 'Hello, welcome to your report!'
-    image_file1 = join(args.dir,'cumulative_motion.jpg')
-    title1 = 'Motion Paramters'
-    image_file2 = join(args.dir,'bundle2.png')
-    title2 = 'This and That'
-    image_file3= join(args.dir,'motioncombined.jpg')
+    title_text = 'Structural Connectivity Report'
     
-    title3 = 'new title'
+    Date = str(datetime.datetime.now())
+    Date = join('Scan Process Date: ',Date)
+
+    text = join('Diffusion Image Processed: ',str(basename(image_dict["dti"]["nifti"])))
+    QC = join(os.path.abspath(args.dir),'QC_Table.jpg')
+    Motion = join(os.path.abspath(args.dir),'motioncombined.jpg')
+    Tracts= join(os.path.abspath(args.dir),'tractography.jpg')
+    Conn= join(os.path.abspath(args.dir),'connectivity_matrix.jpg')
+    
     
     # 2. Combine them together using a long f-string/template
     html = f'''
@@ -641,14 +569,18 @@ def main(argv):
                 <title>{page_title_text}</title>
             </head>
             <body>
-                <h1>{title_text}</h1>
+                <h2>{title_text}</h1>
+                <p>{Date}</h1>
                 <p>{text}</p>
-                <img src='{image_file1}' width="700">
-                <h2>{title1}</h2>
-                <img src='{image_file2}' width="700">
-                <h2>{title2}</h2>
-                <img src='{image_file3}' width="700">
-                <h2>{title3}</h2>
+                <p>Software Version 1.1</p>
+                <h2>Quality Control</h2>
+                <img src='{QC}' width="1000">
+                <h2>Subject Head Motion</h2>
+                <img src='{Motion}' width="1000">
+                <h2>Tractography Results</h2>
+                <img src='{Tracts}' width="1000">
+                <h2>Connectivity Matrix</h2>
+                <img src='{Conn}' width="700">
             </body>
         </html>
         '''
@@ -679,6 +611,9 @@ def main(argv):
     for files in outfile:
         files= basename(str(files)).replace("'", '').replace("]", '').replace("[",'')
         shutil.move(join(args.dir,'Structural_Connectomes','Files',files), join(args.dir,'Structural_Connectomes',files))
+    
+    
+    #Add items to keys
     
     
 '''
