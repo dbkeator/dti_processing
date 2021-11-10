@@ -71,13 +71,13 @@ except ImportError:
 from pandas.plotting import table
 #from dti import process_dti
 
-key = {"FA" : "Fractional Anisotropy NIFTI Image",
+key1 = {"FA" : "Fractional Anisotropy NIFTI Image",
        "MD" : "Mean Diffusivity NIFTI Image",
        "Binary_csv": "Binary adjacency (connectivity) matrix of the Freesurfer DKT atlas adjusted by 0.001 of the maximum",
        "Weighted_csv":"Weighted adjacency (connectivity) matrix of the Freesurfer DKT atlas where weights are equavalent to the number of streamlines connecting each node pair"
        }
 
-key1 = {"input prefix" : "raw files from given directory",
+key2 = {"input prefix" : "raw files from given directory",
         "dti_eddycuda prefix" : "FSLs eddy processed DWI files",
         "...eddy_c_dtifit.. files" : "Additional Eigenvector/Eigenvalue files from FSLs dtifit function",
         "count_connect.trk.gz" : "Whole brain tractograph file used for adjacency matrix and graph measures calculation",
@@ -604,6 +604,61 @@ def main(argv):
     pdf.print_chapter(1, '', '20k_c1.txt')
     pdf.output(join(args.dir,'Report.pdf'), 'F')
     
+    
+    #
+    #Create formatted Weighted and Binary Adjacency Matrix save as csv files
+    conn = pd.read_csv(join(args.dir,'connectivity_countmeasures.txt.FreeSurferDKT.count.end.connectogram.txt'),
+                       sep="\t")
+    conn = conn.drop(['data'],axis=1)
+    conn.columns = conn.iloc[0]
+    conn = conn.set_index('data')
+    conn = conn.drop(['data'],axis=0)
+    conn = conn.iloc[:, :-1]
+    conn = conn.apply( pd.to_numeric, errors='coerce')
+    conn.to_csv(join(args.dir,'Weighted.csv'))
+    maxi = conn.max(numeric_only=True).max()
+    conn[conn < 0.001*maxi] = 0
+    conn[conn > 0.001*maxi] = 1
+    conn.to_csv(join(args.dir,'Binary.csv'))
+    
+    #Create HTML report
+    # 1. Set up multiple variables to store the titles, text within the report
+    page_title_text='Connectometry Report'
+    title_text = str(image_dict["dti"]["nifti"])
+    text = 'Hello, welcome to your report!'
+    image_file1 = join(args.dir,'cumulative_motion.jpg')
+    title1 = 'Motion Paramters'
+    image_file2 = join(args.dir,'bundle2.png')
+    title2 = 'This and That'
+    image_file3= join(args.dir,'motioncombined.jpg')
+    
+    title3 = 'new title'
+    
+    # 2. Combine them together using a long f-string/template
+    html = f'''
+        <html>
+            <head>
+                <title>{page_title_text}</title>
+            </head>
+            <body>
+                <h1>{title_text}</h1>
+                <p>{text}</p>
+                <img src='{image_file1}' width="700">
+                <h2>{title1}</h2>
+                <img src='{image_file2}' width="700">
+                <h2>{title2}</h2>
+                <img src='{image_file3}' width="700">
+                <h2>{title3}</h2>
+            </body>
+        </html>
+        '''
+    # 3. Write the html string as an HTML file
+    with open(join(args.dir,'Connectometry_Report.html'), 'w') as f:
+        f.write(html)
+    
+    
+    '''
+    
     #Sort files
     file_list = glob.glob(join(args.dir,'*'))
     
@@ -612,31 +667,23 @@ def main(argv):
     for files in file_list:
         files= basename(str(files)).replace("'", '').replace("]", '').replace("[",'')
         shutil.move(join(args.dir,files), join(args.dir,'Structural_Connectomes','Files',files))
-    #move out MPRAGE, FA, MD, and connectivity.txt file to save as csv and add to 'key'
+    #move out MPRAGE, FA, MD, and weighted and  file to save as csv and add to 'key'
     outfile = [glob.glob(join(args.dir,'Structural_Connectomes','Files',"*FA.nii.gz")),
                glob.glob(join(args.dir,'Structural_Connectomes','Files',"*MD.nii.gz")),
-               glob.glob(join(args.dir,'Structural_Connectomes','Files',basename(image_dict["structural"]["nifti"])))
+               glob.glob(join(args.dir,'Structural_Connectomes','Files',basename(image_dict["structural"]["nifti"]))),
+               glob.glob(join(args.dir,'Structural_Connectomes','Files','Connectometry_Report.html'))
                ]
+        
+    
     #print(outfile)
     for files in outfile:
         files= basename(str(files)).replace("'", '').replace("]", '').replace("[",'')
         shutil.move(join(args.dir,'Structural_Connectomes','Files',files), join(args.dir,'Structural_Connectomes',files))
     
-    #Create formatted Weighted and Binary Adjacency Matrix save as csv files
-    conn = pd.read_csv(join(args.dir,'Structural_Connectomes','Files','connectivity_countmeasures.txt.FreeSurferDKT.count.end.connectogram.txt'),
-                       sep="\t")
-    conn = conn.drop(['data'],axis=1)
-    conn.columns = conn.iloc[0]
-    conn = conn.set_index('data')
-    conn = conn.drop(['data'],axis=0)
-    conn = conn.iloc[:, :-1]
-    conn = conn.apply( pd.to_numeric, errors='coerce')
-    conn.to_csv(join(args.dir,'Structural_Connectomes','Weighted.csv'))
-    maxi = conn.max(numeric_only=True).max()
-    conn[conn < 0.001*maxi] = 0
-    conn[conn > 0.001*maxi] = 1
-    conn.to_csv(join(args.dir,'Structural_Connectomes','Binary.csv'))
     
+'''
+
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
