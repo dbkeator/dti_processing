@@ -76,7 +76,7 @@ key1 = {"FA" : "Fractional Anisotropy NIFTI Image",
        "Binary.csv": "Binary adjacency (connectivity) matrix of the Freesurfer DKT atlas adjusted by 0.001 of the maximum",
        "Weighted.csv":"Weighted adjacency (connectivity) matrix of the Freesurfer DKT atlas where weights are equavalent to the number of streamlines connecting each node pair",
        "Connectometry_Report.html" : "Connectivity Analysis Report in html format",
-       "MPRAGE" : "T1 weighted image used in processing",
+       "MPRAGE" : "T1 weighted image used in processing"
        }
 
 key2 = {"input prefix" : "raw DWI file from given directory",
@@ -97,8 +97,7 @@ key2 = {"input prefix" : "raw DWI file from given directory",
         "motion_relative_to_prior_volume.jpg cumulative_motion.jpg":"Motion plots with averages-one relative to the previous subbrick and one relative to the diplacement from scan start",
         "niftiname.txt":"Store the file path and name for the DWI file for html file and/or pdf file report",
         "src_base.qc.txt":"text file version for the quality control report generated from DSI studio",
-        "src_base.src.gz":"preliminary DSI studio file that binds the bvalue and bvector information to the raw DWI file",
-        "src_base.src.gz.icbm152.qsdr.1.25.R59.fib.gz":"DSI studio reconstructed file ready for tractography"
+        "src_base.src.gz":"preliminary DSI studio file that binds the bvalue and bvector information to the raw DWI file"        
         }
 
 
@@ -125,8 +124,8 @@ def main(argv):
     # run bet for eddy correction
     logger.info('Running BET for Diffusion Analysis')
     input_file = join("data",basename(image_dict["dti"]["nifti"]))
-    output_file = join("output",splitext(basename(image_dict["dti"]["nifti"]))[0] +
-                       "_brain.nii.gz")
+    output_file = join("output",splitext(basename(image_dict["dti"]["nifti"]))[0] + "_brain.nii.gz")                      
+    
     bet_command = [
         "bet",input_file,output_file,"-f","0.3","-g","0","-m"
     ]
@@ -155,9 +154,7 @@ def main(argv):
     acqpfourth = 0.001*((EPIfacto*(echo_spacing*1000))-1)
     acqp_params = Phase + ' ' + str(acqpfourth)
     acqpparamfinal = str(acqp_params)
-    acqpparamfinal = acqpparamfinal.replace('[', '')
-    acqpparamfinal = acqpparamfinal.replace(']', '')
-    acqpparamfinal = acqpparamfinal.replace("'", '')
+    acqpparamfinal = acqpparamfinal.replace('[', '').replace(']', '').replace("'", '')
     acqp = open(join(args.dir,"acqp_params.txt"),"w")
     acqp.write(acqpparamfinal)
     acqp.close()
@@ -171,14 +168,11 @@ def main(argv):
     index = len(df1.columns)
     if len(df1.columns) < 30:
        logger.error('Too Few Directions to Reconstruct Images') 
-       print()
        print('System Failure...Too Few Directions to Reconstruct Images')
        sys.exit()
     indexhere = [1] * index
     indexfinal =str(indexhere)
-    indexfinal = indexfinal.replace(',', '')
-    indexfinal = indexfinal.replace('[', '')
-    indexfinal = indexfinal.replace(']', '')
+    indexfinal = indexfinal.replace(',', '').replace('[', '').replace(']', '')
     index= open(join(args.dir,"index.txt"),"w")
     index.write(indexfinal)
     index.close()
@@ -384,10 +378,7 @@ def main(argv):
                         sep=" ",header=None)                 
     Ecc = str(Eff.iloc[9:11])
     Ecc = str(Ecc)
-    Ecc = Ecc.replace('\\t', ' ')
-    Ecc = Ecc.replace('9', '')
-    Ecc = Ecc.replace('0', '')
-    Ecc = Ecc.replace('1', '')
+    Ecc = Ecc.replace('\\t', ' ').replace('9', '').replace('0', '').replace('1', '')
     Ecc = Ecc.strip()
     NIIname = open(join(args.dir,"globalefficiencyonly.txt"),"w")
     k=NIIname.write('Efficiency Measures\n')
@@ -473,10 +464,8 @@ def main(argv):
     
     #create FA image 
     fname_t1 = glob.glob(join(args.dir,'*FA.nii.gz'))
-    print(fname_t1)
     fname_t1= str(fname_t1)
     fname_t1 = fname_t1.replace("'", '').replace("]", '').replace("[", '')
-    print(fname_t1)
     img = nib.load(fname_t1)
     data = img.get_data()
     affine = img.affine
@@ -551,29 +540,74 @@ def main(argv):
     conn[conn > 0.001*maxi] = 1
     conn.to_csv(join(args.dir,'Binary.csv'))
     
+    
+    #add files an hyperlinks to keys
+    my_dict = key2.copy()
+    my_dict[str(glob.glob(join(args.dir,basename(image_dict["dti"]["nifti"]))))] = my_dict.pop("input prefix")
+    my_dict[str(glob.glob(join(args.dir,"dti*nii.gz")))] = my_dict.pop("dti_eddycudanifti")
+    my_dict[str(glob.glob(join(args.dir,"*eddy_movement_rms")))] = my_dict.pop("eddy_movement_rms")
+    my_dict[str(glob.glob(join(args.dir,"*dtifit*")))] = my_dict.pop("...eddy_c_dtifit.. files")
+    file = open(join(args.dir,"key2.txt"),"w")
+    for key, value in my_dict.items():
+        file.write('%s  :  %s\n' % (key, value))
+    file.close()
+    
+    
+    #write files for main directory
+    my_dict1 = key1.copy()
+    my_dict1[str(glob.glob(join(args.dir,"*FA.nii.gz")))] = my_dict1.pop("FA")
+    my_dict1[str(glob.glob(join(args.dir,basename(image_dict["structural"]["nifti"]))))] = my_dict1.pop("MPRAGE")
+    my_dict1[str(glob.glob(join(args.dir,"*MD.nii.gz")))] = my_dict1.pop("MD")
+    file = open(join(args.dir,"key1.txt"),"w")
+    for key, value in my_dict1.items():
+        file.write('%s  :  %s\n' % (key, value))
+    file.close()
+    
+    
+    #Sort files
+    file_list = glob.glob(join(args.dir,'*'))
+    os.mkdir(join(args.dir,'Structural_Connectomes'))
+    os.mkdir(join(args.dir,'Structural_Connectomes','Files'))
+    for files in file_list:
+        files= basename(str(files)).replace("'", '').replace("]", '').replace("[",'')
+        shutil.move(join(args.dir,files), join(args.dir,'Structural_Connectomes','Files',files))
+    #move out MPRAGE, FA, MD, and weighted and  file to save as csv and add to 'key'
+    outfile = [glob.glob(join(args.dir,'Structural_Connectomes','Files',"*FA.nii.gz")),
+               glob.glob(join(args.dir,'Structural_Connectomes','Files',"*MD.nii.gz")),
+               glob.glob(join(args.dir,'Structural_Connectomes','Files',basename(image_dict["structural"]["nifti"]))),
+               glob.glob(join(args.dir,'Structural_Connectomes','Files','key1.txt'))
+               ]
+    for files in outfile:
+        files= basename(str(files)).replace("'", '').replace("]", '').replace("[",'')
+        shutil.move(join(args.dir,'Structural_Connectomes','Files',files), join(args.dir,'Structural_Connectomes',files))
+    
+    
     #Create HTML report
     page_title_text='Connectometry Report'
     title_text = 'Structural Connectivity Report'
     Date = str(datetime.datetime.now())
     Date = join('Scan Process Date: ',Date)
     text = join('Diffusion Image Processed: ',str(basename(image_dict["dti"]["nifti"])))
-    QC = join(os.path.abspath(args.dir),'QC_Table.jpg')
-    Motion = join(os.path.abspath(args.dir),'motioncombined.jpg')
-    Tracts= join(os.path.abspath(args.dir),'tractography.jpg')
-    Conn= join(os.path.abspath(args.dir),'connectivity_matrix.jpg')
+    QC = join(os.path.abspath(args.dir),'Structural_Connectomes','Files','QC_Table.jpg')
+    print(QC)
+    Motion = join(os.path.abspath(args.dir),'Structural_Connectomes','Files','motioncombined.jpg')
+    print(Motion)
+    Tracts= join(os.path.abspath(args.dir),'Structural_Connectomes','Files','tractography.jpg')
+    print(Tracts)
+    Conn= join(os.path.abspath(args.dir),'Structural_Connectomes','Files','connectivity_matrix.jpg')
+    print(Conn)
+    
     #get R2 for quality
-    R2 = str(glob.glob(join(args.dir,'*fib.gz')))
+    R2 = str(glob.glob(join(args.dir,'Structural_Connectomes','Files','*fib.gz')))
     start = R2.find("R") + len("R")
     end = R2.find(".fib.gz")
     R2 = R2[start:end]
     R2 = int(R2)
     if R2 >= 60:
-        Com = ('The R-squared value is '+str(R2)+' and does fit to the template')
+        Com = ('The R-squared value is '+str(R2)+' indicating good fit to the template')
     else:
         Com = ('WARNING PLEASE CHECK DATA: The R-squared value is '+str(R2)+' indicating a weak fit to the template space')
-    
-    
-    # 2. Combine them together using a long f-string/template
+
     html = f'''
         <html>
             <head>
@@ -599,61 +633,17 @@ def main(argv):
         </html>
         '''
     # 3. Write the html string as an HTML file
-    with open(join(args.dir,'Connectometry_Report.html'), 'w') as f:
+    with open(join(args.dir,'Structural_Connectomes','Connectometry_Report.html'), 'w') as f:
         f.write(html)
     
     
-    
-    #add files an hyperlinks to keys
-    my_dict = key2.copy()
-    my_dict[str(glob.glob(join(args.dir,basename(image_dict["dti"]["nifti"]))))] = my_dict.pop("input prefix")
-    my_dict[str(glob.glob(join(args.dir,"dti*nii.gz")))] = my_dict.pop("dti_eddycudanifti")
-    my_dict[str(glob.glob(join(args.dir,"*eddy_movement_rms")))] = my_dict.pop("eddy_movement_rms")
-    my_dict[str(glob.glob(join(args.dir,"*dtifit*")))] = my_dict.pop("...eddy_c_dtifit.. files")
-    file = open(join(args.dir,"key2.txt"),"w")
-    for key, value in my_dict.items():
-        file.write('%s  :  %s\n' % (key, value))
-    file.close()
-    
-    
-    #write files for main directory
-    my_dict1 = key1.copy()
-    my_dict1[str(glob.glob(join(args.dir,"*FA.nii.gz")))] = my_dict1.pop("FA")
-    my_dict1[str(glob.glob(join(args.dir,basename(image_dict["structural"]["nifti"]))))] = my_dict1.pop("MPRAGE")
-    my_dict1[str(glob.glob(join(args.dir,"*MD.nii.gz")))] = my_dict1.pop("MD")
-    file = open(join(args.dir,"key1.txt"),"w")
-    for key, value in my_dict1.items():
-        file.write('%s  :  %s\n' % (key, value))
-    file.close()
-    
-    
-    
-    #Sort files
-    file_list = glob.glob(join(args.dir,'*'))
-    os.mkdir(join(args.dir,'Structural_Connectomes'))
-    os.mkdir(join(args.dir,'Structural_Connectomes','Files'))
-    for files in file_list:
-        files= basename(str(files)).replace("'", '').replace("]", '').replace("[",'')
-        shutil.move(join(args.dir,files), join(args.dir,'Structural_Connectomes','Files',files))
-    #move out MPRAGE, FA, MD, and weighted and  file to save as csv and add to 'key'
-    outfile = [glob.glob(join(args.dir,'Structural_Connectomes','Files',"*FA.nii.gz")),
-               glob.glob(join(args.dir,'Structural_Connectomes','Files',"*MD.nii.gz")),
-               glob.glob(join(args.dir,'Structural_Connectomes','Files',basename(image_dict["structural"]["nifti"]))),
-               glob.glob(join(args.dir,'Structural_Connectomes','Files','Connectometry_Report.html')),
-               glob.glob(join(args.dir,'Structural_Connectomes','Files','key1.txt'))
-               ]
-    for files in outfile:
-        files= basename(str(files)).replace("'", '').replace("]", '').replace("[",'')
-        shutil.move(join(args.dir,'Structural_Connectomes','Files',files), join(args.dir,'Structural_Connectomes',files))
-
 if __name__ == "__main__":
     main(sys.argv[1:])
     
-
-
-
-
-  
+    
+    
+    
+    
     
     
     
