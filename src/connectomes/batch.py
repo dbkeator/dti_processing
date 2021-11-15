@@ -118,6 +118,16 @@ def main(argv):
     logger.addHandler(hdlr)
     logger.setLevel(logging.INFO)
 
+
+    print()
+    print()
+    print(args.dir)
+    print()
+    print()
+    args.dir= os.path.abspath(args.dir)
+    print(args.dir)
+    print()
+    print()
     # find structural and DTI images
     image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=False)
     
@@ -125,6 +135,9 @@ def main(argv):
     logger.info('Running BET for Diffusion Analysis')
     input_file = join("data",basename(image_dict["dti"]["nifti"]))
     output_file = join("output",splitext(basename(image_dict["dti"]["nifti"]))[0] + "_brain.nii.gz")                      
+    
+   
+    
     
     bet_command = [
         "bet",input_file,output_file,"-f","0.3","-g","0","-m"
@@ -158,7 +171,7 @@ def main(argv):
     acqp = open(join(args.dir,"acqp_params.txt"),"w")
     acqp.write(acqpparamfinal)
     acqp.close()
-    #create the 
+    #create the index file
     with open(image_dict["dti"]["bval"], 'r') as file:
          datas = file.read().replace('\n', '')
     datah = io.StringIO(datas)
@@ -227,8 +240,16 @@ def main(argv):
 
     dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
     
-    #upload DSIParams file
-   
+    #upload DSIParams file for reconstruction and tractography
+    def load_regparams():
+        d = {}
+        with open(join(os.getcwd(),"DSIParams.txt")) as f:
+            for line in f:
+                (key, val) = line.split()
+                d[key] = val
+        return d
+    regparams = load_regparams()
+    
     
     # reconstruct the images (create fib file; QSDR method=7,GQI method = 4)
     logger.info('Running QSDR Reconstruction')
@@ -236,14 +257,14 @@ def main(argv):
     other_image = join("t1w:","data/"+basename(image_dict["structural"]["nifti"]))
     dsirecon = ["dsi_studio","--action=rec",
                   "--source="+source_file,
-                  "--method=7",
-                  "--param0=1.25",
-                  "--param1=1",
-                  "--half_sphere=1",
-                  "--odf_order=8",
-                  "--num_fiber=10",
-                  "--scheme_balance=1",
-                  "--check_btable=1",
+                  "--method="+regparams['method:'],
+                  "--param0="+regparams['param0:'],
+                  "--param1="+regparams['param1:'],
+                  "--half_sphere="+regparams['half-shere:'],
+                  "--odf_order="+regparams['odf_order:'],
+                  "--num_fiber="+regparams['num_fiber:'],
+                  "--scheme_balance="+regparams['scheme_balance:'],
+                  "--check_btable="+regparams['check_btable:'],
                   "--other_image="+other_image]
 
     dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
@@ -256,18 +277,18 @@ def main(argv):
     output_file = join("output","count_connect.trk.gz")
     dsiruntract = ["dsi_studio","--action=trk",
                     "--source="+source_file,
-                    "--seed_count=100000",
-                    "--threshold_index=qa",
-                    "--fa_threshold=0.00",
-                    "--initial_dir=0",
-                    "--seed_plan=0",
-                    "--interpolation=0",
-                    "--thread_count=12",
-                    "--step_size=0",
-                    "--turning_angle=65",
-                    "--smoothing=.6",
-                    "--min_length=10",
-                    "--max_length=600",
+                    "--seed_count="+regparams['seed_count:'],
+                    "--threshold_index="+regparams['threshold_index:'],
+                    "--fa_threshold="+regparams['fa_threshold:'],
+                    "--initial_dir="+regparams['initial_dir:'],
+                    "--seed_plan="+regparams['seed_plan:'],
+                    "--interpolation="+regparams['interpolation:'],
+                    "--thread_count="+regparams['thread_count:'],
+                    "--step_size="+regparams['step_size:'],
+                    "--turning_angle="+regparams['turning_angle:'],
+                    "--smoothing="+regparams['smoothing:'],
+                    "--min_length="+regparams['min_length:'],
+                    "--max_length="+regparams['max_length:'],
                     "--output="+output_file]
 
     dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
@@ -620,13 +641,13 @@ def main(argv):
                 <p>Software Version 1.1</p>
                 <p>{Com}</p>
                 <h2>Quality Control</h2>
-                <img src='{QC}' width="1000">
+                <img src='{QC}' width="1200">
                 <h2>Subject Head Motion</h2>
                 <img src='{Motion}' width="1000">
                 <h2>Tractography Results</h2>
                 <img src='{Tracts}' width="1000">
                 <h2>Connectivity Matrix</h2>
-                <img src='{Conn}' width="700">
+                <img src='{Conn}' width="1200">
                 <h2>Efficiency Measures</h2>
                 <p>{Ecc}</p>
             </body>
