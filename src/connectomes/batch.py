@@ -73,10 +73,9 @@ from pandas.plotting import table
 
 key1 = {"FA" : "Fractional Anisotropy NIFTI Image",
        "MD" : "Mean Diffusivity NIFTI Image",
-       "Binary.csv": "Binary adjacency (connectivity) matrix of the Freesurfer DKT atlas adjusted by 0.001 of the maximum",
-       "Weighted.csv":"Weighted adjacency (connectivity) matrix of the Freesurfer DKT atlas where weights are equavalent to the number of streamlines connecting each node pair",
-       "Connectometry_Report.html" : "Connectivity Analysis Report in html format",
-       "MPRAGE" : "T1 weighted image used in processing"
+       "connectome_matrix_binary.csv": "Binary adjacency (connectivity) matrix of the Freesurfer DKT atlas adjusted by 0.001 of the maximum",
+       "connectome_matrix_weighted.csv":"Weighted adjacency (connectivity) matrix of the Freesurfer DKT atlas where weights are equavalent to the number of streamlines connecting each node pair",
+       "Connectometry_Report.html" : "Connectivity Analysis Report in html format"
        }
 
 key2 = {"input prefix" : "raw DWI file from given directory",
@@ -97,7 +96,8 @@ key2 = {"input prefix" : "raw DWI file from given directory",
         "motion_relative_to_prior_volume.jpg cumulative_motion.jpg":"Motion plots with averages-one relative to the previous subbrick and one relative to the diplacement from scan start",
         "niftiname.txt":"Store the file path and name for the DWI file for html file and/or pdf file report",
         "src_base.qc.txt":"text file version for the quality control report generated from DSI studio",
-        "src_base.src.gz":"preliminary DSI studio file that binds the bvalue and bvector information to the raw DWI file"        
+        "src_base.src.gz":"preliminary DSI studio file that binds the bvalue and bvector information to the raw DWI file",
+        "MPRAGE" : "T1 weighted image used in processing"
         }
 
 def main(argv):
@@ -118,6 +118,7 @@ def main(argv):
     logger.setLevel(logging.INFO)
 
 
+    #make args.dir absolute path 
     print()
     print()
     print(args.dir)
@@ -135,8 +136,7 @@ def main(argv):
     input_file = join("data",basename(image_dict["dti"]["nifti"]))
     output_file = join("output",splitext(basename(image_dict["dti"]["nifti"]))[0] + "_brain.nii.gz")                      
     
-   
-    
+
     
     bet_command = [
         "bet",input_file,output_file,"-f","0.3","-g","0","-m"
@@ -144,6 +144,7 @@ def main(argv):
 
 
     fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=bet_command)
+
     
     
     ######create supplementary files to run eddy
@@ -207,7 +208,7 @@ def main(argv):
                 "--index="+index_file,"--bvecs="+bvec, "--bvals="+bval,"--out="+out_file
         ]
     
-    fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
+    #fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
     
     #dti fit for FA and MD maps
     logger.info('Running FSLs DTIfit')   
@@ -225,18 +226,20 @@ def main(argv):
     logger.info('Running Make SRC File')
     source_file = join("data","dti_eddycuda_corrected_data.nii.gz")
     out_file=join("output","src_base")
+    newbvec = join("data","dti_eddycuda_corrected_data.eddy_rotated_bvecs")
     
     dsi_src = ["dsi_studio","--action=src",
                 "--source="+source_file,"--output="+out_file,
-                "--bval="+bval,"--bvec="+bvec]
+                "--bval="+bval,"--bvec="+newbvec]
 
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
     
  # check src file for quality
     logger.info('Running Quality Control for SRC')
     source_file = join("data","src_base.src.gz")
     dsiquality = ["dsi_studio","--action=qc",
                 "--source="+source_file]
+
 
     dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
 
@@ -268,7 +271,7 @@ def main(argv):
                   "--check_btable="+regparams['check_btable:'],
                   "--other_image="+other_image]
 
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
     
     # run robust tractography whole brain
     logger.info('Running Whole Brain Tractography Analysis')
@@ -292,7 +295,7 @@ def main(argv):
                     "--max_length="+regparams['max_length:'],
                     "--output="+output_file]
 
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
     
     
     # generate connectivity matrix and summary statistics
@@ -308,7 +311,7 @@ def main(argv):
                       "--connectivity_type=end",
                       "--output="+output_file]
 
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
 
     #Generate images of tractography 
     logger.info('Creating Tractography Images')
@@ -388,11 +391,11 @@ def main(argv):
     conn = conn.iloc[:, :-1]
     conn = conn.apply( pd.to_numeric, errors='coerce')
     fig, ax = plt.subplots(figsize=(15,15))
-    here = sns.heatmap(conn,square=True)
+    here = sns.heatmap(conn,square=True,cmap="jet")
     sns.set(font_scale=1.4)
     figure = plt.gcf()
     figure.set_size_inches(20, 20)
-    plt.savefig(join(args.dir,"connectivity_matrix.jpg"), dpi=200,bbox_inches='tight')
+    plt.savefig(join(args.dir,"connectivity_matrix.jpg"), dpi=1000,bbox_inches='tight')
     
     #############Save Efficiency data as file
     logger.info('Generating Efficiency Files')
@@ -556,11 +559,11 @@ def main(argv):
     conn = conn.drop(['data'],axis=0)
     conn = conn.iloc[:, :-1]
     conn = conn.apply( pd.to_numeric, errors='coerce')
-    conn.to_csv(join(args.dir,'Weighted.csv'))
+    conn.to_csv(join(args.dir,'connectome_matrix_weighted.csv'))
     maxi = conn.max(numeric_only=True).max()
     conn[conn < 0.001*maxi] = 0
     conn[conn > 0.001*maxi] = 1
-    conn.to_csv(join(args.dir,'Binary.csv'))
+    conn.to_csv(join(args.dir,'connectome_matrix_binary.csv'))
     
     
     #add files an hyperlinks to keys
@@ -569,6 +572,8 @@ def main(argv):
     my_dict[str(glob.glob(join(args.dir,"dti*nii.gz")))] = my_dict.pop("dti_eddycudanifti")
     my_dict[str(glob.glob(join(args.dir,"*eddy_movement_rms")))] = my_dict.pop("eddy_movement_rms")
     my_dict[str(glob.glob(join(args.dir,"*dtifit*")))] = my_dict.pop("...eddy_c_dtifit.. files")
+    my_dict[str(glob.glob(join(args.dir,basename(image_dict["structural"]["nifti"]))))] = my_dict.pop("MPRAGE")
+
     file = open(join(args.dir,"key2.txt"),"w")
     for key, value in my_dict.items():
         file.write('%s  :  %s\n' % (key, value))
@@ -578,7 +583,6 @@ def main(argv):
     #write files for main directory
     my_dict1 = key1.copy()
     my_dict1[str(glob.glob(join(args.dir,"*FA.nii.gz")))] = my_dict1.pop("FA")
-    my_dict1[str(glob.glob(join(args.dir,basename(image_dict["structural"]["nifti"]))))] = my_dict1.pop("MPRAGE")
     my_dict1[str(glob.glob(join(args.dir,"*MD.nii.gz")))] = my_dict1.pop("MD")
     file = open(join(args.dir,"key1.txt"),"w")
     for key, value in my_dict1.items():
@@ -587,7 +591,9 @@ def main(argv):
     
     
     #Sort files
-    file_list = glob.glob(join(args.dir,'*'))
+    file_list = glob.glob(join(args.dir,'*jpg')) + glob.glob(join(args.dir,'*png')) + glob.glob(join(args.dir,'*txt*')) + glob.glob(join(args.dir,'*dti*')) + glob.glob(join(args.dir,'*src*gz')) + glob.glob(join(args.dir,'*trk.gz')) + glob.glob(join(args.dir,'*csv'))
+    
+    
     os.mkdir(join(args.dir,'Structural_Connectomes'))
     os.mkdir(join(args.dir,'Structural_Connectomes','Files'))
     for files in file_list:
@@ -596,31 +602,69 @@ def main(argv):
     #move out MPRAGE, FA, MD, and weighted and  file to save as csv and add to 'key'
     outfile = [glob.glob(join(args.dir,'Structural_Connectomes','Files',"*FA.nii.gz")),
                glob.glob(join(args.dir,'Structural_Connectomes','Files',"*MD.nii.gz")),
-               glob.glob(join(args.dir,'Structural_Connectomes','Files',basename(image_dict["structural"]["nifti"]))),
-               glob.glob(join(args.dir,'Structural_Connectomes','Files','key1.txt'))
+               glob.glob(join(args.dir,'Structural_Connectomes','Files','key1.txt')),
+               join(args.dir,'Structural_Connectomes','Files','connectome_matrix_weighted.csv'),
+               join(args.dir,'Structural_Connectomes','Files','connectome_matrix_binary.csv')
                ]
     for files in outfile:
         files= basename(str(files)).replace("'", '').replace("]", '').replace("[",'')
         shutil.move(join(args.dir,'Structural_Connectomes','Files',files), join(args.dir,'Structural_Connectomes',files))
     
+    #Rename some files
+    FA = glob.glob(join(args.dir,'Structural_Connectomes',"*FA.nii.gz"))
+    FA =str(FA).replace("'", '').replace("]", '').replace("[",'')
+    MD =glob.glob(join(args.dir,'Structural_Connectomes',"*MD.nii.gz"))
+    MD=str(MD).replace("'", '').replace("]", '').replace("[",'')
+    os.rename(FA,
+              join(args.dir,'Structural_Connectomes',"FA.nii.gz"))
+    os.rename(MD,
+              join(args.dir,'Structural_Connectomes',"MD.nii.gz"))
+    os.rename(join(args.dir,'Structural_Connectomes',"key1.txt"),
+              join(args.dir,'Structural_Connectomes','key.txt'))
+    os.rename(join(args.dir,'Structural_Connectomes','Files',"key2.txt"),
+              join(args.dir,'Structural_Connectomes','Files','key.txt'))
+    
     
     #Create HTML report
     page_title_text='Connectometry Report'
     title_text = 'Structural Connectivity Report'
-    Date = str(datetime.datetime.now())
-    Date = join('Scan Process Date: ',Date)
-    text = join('Diffusion Image Processed: ',str(basename(image_dict["dti"]["nifti"])))
+    patient_file = ('Patient Folder =' +args.dir)
+    Date = join('Scan Process Date: ',str(datetime.datetime.now()))
+    ScanTime = join('Scan Date:',str(time.ctime(os.path.getctime(join(args.dir,basename(image_dict["structural"]["nifti"]))))))
+    Diff = join('DTI Scan: ',str(basename(image_dict["dti"]["nifti"])))
+    Bval =  join('DTI b-value: ',str(basename(image_dict["dti"]["bval"])))    
+    Bvec =  join('DTI b-vector: ',str(basename(image_dict["dti"]["bvec"])))
+    MPRAGE = join('Structural Scan: ',str(basename(image_dict["structural"]["nifti"])))
     QC = join(os.path.abspath(args.dir),'Structural_Connectomes','Files','QC_Table.jpg')
-    print(QC)
     Motion = join(os.path.abspath(args.dir),'Structural_Connectomes','Files','motioncombined.jpg')
-    print(Motion)
     Tracts= join(os.path.abspath(args.dir),'Structural_Connectomes','Files','tractography.jpg')
-    print(Tracts)
     Conn= join(os.path.abspath(args.dir),'Structural_Connectomes','Files','connectivity_matrix.jpg')
-    print(Conn)
+    Bin = join(os.path.abspath(args.dir),'Structural_Connectomes','connectome_matrix_binary.csv')
+    Weight = join(os.path.abspath(args.dir),'Structural_Connectomes','connectome_matrix_weighted.csv')
+    GraphTheoryMetrics = join(os.path.abspath(args.dir),'Structural_Connectomes','Files','connectivity_countmeasures.txt.FreeSurferDKT.count.end.network_measures.txt')
+    all_graph1 = pd.read_csv(join(args.dir,'Structural_Connectomes','Files','connectivity_countmeasures.txt.FreeSurferDKT.count.end.network_measures.txt'),
+                       error_bad_lines=False,delim_whitespace=True,header=None,warn_bad_lines=False) 
+    all_graph1_T = all_graph1.T
+    all_graph1_T.to_csv(join(args.dir,'Structural_Connectomes','Graph_Theoretic_Measures.csv'), index=None)
     
-    #get R2 for quality
-    R2 = str(glob.glob(join(args.dir,'Structural_Connectomes','Files','*fib.gz')))
+    Dens = all_graph1.iloc[0,1]
+    clust_b = all_graph1.iloc[1,1]
+    clust_w =all_graph1.iloc[2,1]
+    tran_b = all_graph1.iloc[3,1]
+    tran_w = all_graph1.iloc[4,1]
+    netch_b = all_graph1.iloc[5,1]
+    netch_w = all_graph1.iloc[6,1]
+    SW_b= all_graph1.iloc[7,1]
+    SW_w= all_graph1.iloc[8,1]
+    globe_b =all_graph1.iloc[9,1]
+    globe_w =all_graph1.iloc[10,1]
+    dia_b =all_graph1.iloc[11,1]
+    dia_w =all_graph1.iloc[12,1]
+    rad_b = all_graph1.iloc[13,1]
+    rad_w = all_graph1.iloc[14,1]
+    asso_b = all_graph1.iloc[15,1]
+    asso_w = all_graph1.iloc[16,1]
+    R2 = str(glob.glob(join(args.dir,'Structural_Connectomes','Files','*fib.gz')))#get R2 for quality
     start = R2.find("R") + len("R")
     end = R2.find(".fib.gz")
     R2 = R2[start:end]
@@ -629,7 +673,7 @@ def main(argv):
         Com = ('The R-squared value is '+str(R2)+' indicating good fit to the template')
     else:
         Com = ('WARNING PLEASE CHECK DATA: The R-squared value is '+str(R2)+' indicating a weak fit to the template space')
-
+        
     html = f'''
         <html>
             <head>
@@ -638,24 +682,53 @@ def main(argv):
             <body>
                 <h2>{title_text}</h1>
                 <p>{Date}</h1>
-                <p>{text}</p>
+                <p>{ScanTime}</h1>
+                <p>{Diff}</p>
+                <p>{Bval}</p>
+                <p>{Bvec}</p>
+                <p>{MPRAGE}</p>
+                <p>{patient_file}</p>
                 <p>Software Version 1.1</p>
-                <p>{Com}</p>
                 <h2>Quality Control</h2>
-                <img src='{QC}' width="1200">
+                <p>{Com}</p>
+                <img src='{QC}' width="1200"><br>
+                <a href="{QC}">Quality Control</a>
                 <h2>Subject Head Motion</h2>
-                <img src='{Motion}' width="1000">
+                <img src='{Motion}' width="1000"><br>
+                <a href="{Motion}">Motion Plots</a>
                 <h2>Tractography Results</h2>
-                <img src='{Tracts}' width="1000">
+                <img src='{Tracts}' width="1000"><br>
+                <a href="{Tracts}">Tractography Images</a>
                 <h2>Connectivity Matrix</h2>
-                <img src='{Conn}' width="1200">
-                <h2>Efficiency Measures</h2>
-                <p>{Ecc}</p>
+                <img src='{Conn}' width="1200"><br>
+                <a href="{Conn}">Connectivity Matrix Image</a>
+                <h2>Network Measures</h2>
+                <a href="{GraphTheoryMetrics}">Graph Density:<a> {Dens} <br>
+                <a href="{GraphTheoryMetrics}">Clustering Coefficient Ave Binary:<a> {clust_b} <br>
+                <a href="{GraphTheoryMetrics}">Clustering Coefficient Ave Weighted:<a> {clust_w} <br>
+                <a href="{GraphTheoryMetrics}">Transitivity Binary:<a> {tran_b} <br>
+                <a href="{GraphTheoryMetrics}">Transitivity Weighted:<a> {tran_w} <br>
+                <a href="{GraphTheoryMetrics}">Network Characteristic Path Length Binary:<a> {netch_b} <br>
+                <a href="{GraphTheoryMetrics}">Network Characteristic Path Length Weighted:<a> {netch_w} <br>
+                <a href="{GraphTheoryMetrics}">Small Worldness Binary:<a> {SW_b} <br>
+                <a href="{GraphTheoryMetrics}">Small Worldness Weighted:<a> {SW_w} <br>
+                <a href="{GraphTheoryMetrics}">Global Efficiency Binary:<a> {globe_b} <br>
+                <a href="{GraphTheoryMetrics}">Global Efficiency Weighted:<a> {globe_w} <br>
+                <a href="{GraphTheoryMetrics}">Graph Diameter Binary:<a> {dia_b} <br>
+                <a href="{GraphTheoryMetrics}">Graph Diameter Weighted:<a> {dia_w} <br>
+                <a href="{GraphTheoryMetrics}">Graph Radius Binary:<a> {rad_b} <br>
+                <a href="{GraphTheoryMetrics}">Graph Radius Weighted:<a> {rad_w} <br>
+                <a href="{GraphTheoryMetrics}">Assortativity Coefficient Binary:<a> {asso_b} <br>
+                <a href="{GraphTheoryMetrics}">Assortativity Coefficient Weighted:<a> {asso_w} <br>
+                <h2>Additional Files</h2><br>
+                <a href="{GraphTheoryMetrics}">All Graph Theory Metrics csv<a><br>
+                <a href="{Bin}">Binary Adjacency Matrix</a><br>
+                <a href="{Weight}">Weighted Adjacency Matrix</a>
             </body>
         </html>
         '''
     # 3. Write the html string as an HTML file
-    with open(join(args.dir,'Structural_Connectomes','Connectometry_Report.html'), 'w') as f:
+    with open(join(args.dir,'Structural_Connectomes','report.html'), 'w') as f:
         f.write(html)
     
     
