@@ -387,7 +387,7 @@ def main(argv):
     conn = conn.iloc[:, :-1]
     conn = conn.apply( pd.to_numeric, errors='coerce')
     fig, ax = plt.subplots(figsize=(15,15))
-    here = sns.heatmap(conn,square=True,cmap="jet",xticklabels=True, yticklabels=True)
+    here = sns.heatmap(conn,square=True,cmap="jet",xticklabels=True, yticklabels=True,cbar_kws={'label': 'Number of Streamlines'})
     sns.set(font_scale=1.4)
     figure = plt.gcf()
     figure.set_size_inches(20, 20)
