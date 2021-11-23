@@ -49,6 +49,28 @@ except ImportError:
     system("python -m pip install --upgrade pip dipy.viz")
     from dipy.viz import window, actor, ui
 try:
+    from dipy.io import read_bvals_bvecs
+except ImportError:
+    print("trying to install required module: dipy.io")
+    system("python -m pip install --upgrade pip dipy.io")
+    from dipy.io import read_bvals_bvecs
+try:
+    from dipy.core.gradients import gradient_table
+except ImportError:
+    print("trying to intsall required module: dipy.core.gradients")
+    system("python -m pip install --upgrade pip dipy.core.gradients")
+try:
+    from dipy.reconst.dti import TensorModel, fractional_anisotropy, color_fa
+except ImportError:
+    print("trying to intsall required module: dipy.reconst.dti")
+    system("python -m pip install --upgrade pip dipy.reconst.dti")
+try:
+    from scipy import ndimage
+except ImportError:
+    print("trying to install required module:scipy")
+    system("python -m pip install --upgrade pip scipy")
+
+try:
     import matplotlib.pyplot as plt
 except ImportError:
     print("trying to install required module: matplotlib")
@@ -61,14 +83,10 @@ except ImportError:
     print("trying to install required module: PIL")
     system("python -m pip install --upgrade pip PIL")
     from PIL import Image
-try:
-    from fpdf import FPDF
-except ImportError:
-    print("trying to install required module: fpdf")
-    system("python -m pip install --upgrade pip fpdf")
-    from fpdf import FPDF
 
 from pandas.plotting import table
+
+
 #from dti import process_dti
 
 key1 = {"FA" : "Fractional Anisotropy NIFTI Image",
@@ -97,7 +115,8 @@ key2 = {"input prefix" : "raw DWI file from given directory",
         "niftiname.txt":"Store the file path and name for the DWI file for html file and/or pdf file report",
         "src_base.qc.txt":"text file version for the quality control report generated from DSI studio",
         "src_base.src.gz":"preliminary DSI studio file that binds the bvalue and bvector information to the raw DWI file",
-        "MPRAGE" : "T1 weighted image used in processing"
+        "MPRAGE" : "T1 weighted image used in processing",
+        "FAcolor.png": "ColoredPNG Image"
         }
 
 
@@ -117,33 +136,37 @@ def main(argv):
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr)
     logger.setLevel(logging.INFO)
-
+    
+    
 
     #make args.dir absolute path 
-    print()
-    print()
-    print(args.dir)
-    print()
-    print()
+   
     args.dir= os.path.abspath(args.dir)
-    print(args.dir)
-    print()
-    print()
+
     # find structural and DTI images
     image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=False)
+    
+    #load parameters file
+    #upload DSIParams file for reconstruction and tractography
+    def load_regparams():
+        d = {}
+        with open(join(os.getcwd(),"DSIParams.txt")) as f:
+            for line in f:
+                (key, val) = line.split()
+                d[key] = val
+        return d
+    regparams = load_regparams()
+    
     
     # run bet for eddy correction
     logger.info('Running BET for Diffusion Analysis')
     input_file = join("data",basename(image_dict["dti"]["nifti"]))
     output_file = join("output",splitext(basename(image_dict["dti"]["nifti"]))[0] + "_brain.nii.gz")                      
-    
-
-    
     bet_command = [
         "bet",input_file,output_file,"-f","0.3","-g","0","-m"
     ]
 
-    fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=bet_command)
+    #fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=bet_command)
     
     
     ######create supplementary files to run eddy
@@ -153,7 +176,7 @@ def main(argv):
     df = pd.DataFrame.from_dict(data,orient='index')
     df.columns = ['info']
     echo_spacing = df.iloc[42]['info']
-    EPIfacto = 112
+    EPIfacto = int(regparams['EPI_Factor:'])
     if df.iloc[47]['info'] == "j-": #A to P
            Phase = "0 -1 0" 
     elif df.iloc[47]['info'] == "j": #P to A 
@@ -207,7 +230,7 @@ def main(argv):
                 "--index="+index_file,"--bvecs="+bvec, "--bvals="+bval,"--out="+out_file
         ]
     
-    fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
+    #fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
     
     #dti fit for FA and MD maps
     logger.info('Running FSLs DTIfit')   
@@ -231,7 +254,7 @@ def main(argv):
                 "--source="+source_file,"--output="+out_file,
                 "--bval="+bval,"--bvec="+newbvec]
 
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
     
  # check src file for quality
     logger.info('Running Quality Control for SRC')
@@ -239,17 +262,7 @@ def main(argv):
     dsiquality = ["dsi_studio","--action=qc",
                 "--source="+source_file]
 
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
-    
-    #upload DSIParams file for reconstruction and tractography
-    def load_regparams():
-        d = {}
-        with open(join(os.getcwd(),"DSIParams.txt")) as f:
-            for line in f:
-                (key, val) = line.split()
-                d[key] = val
-        return d
-    regparams = load_regparams()
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
     
     
     # reconstruct the images (create fib file; QSDR method=7,GQI method = 4)
@@ -268,7 +281,7 @@ def main(argv):
                   "--check_btable="+regparams['check_btable:'],
                   "--other_image="+other_image]
 
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
     
     # run robust tractography whole brain
     logger.info('Running Whole Brain Tractography Analysis')
@@ -292,7 +305,7 @@ def main(argv):
                     "--max_length="+regparams['max_length:'],
                     "--output="+output_file]
 
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
     
     
     # generate connectivity matrix and summary statistics
@@ -304,11 +317,12 @@ def main(argv):
                      "--source="+source_file,
                       "--tract="+tract_file,
                       "--connectivity="+atlas,
+                      "--connectivity_threshold="+regparams['Threshold:'],
                       "--connectivity_value=count",
                       "--connectivity_type=end",
                       "--output="+output_file]
 
-    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
+    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
 
     #Generate images of tractography 
     logger.info('Creating Tractography Images')
@@ -387,7 +401,10 @@ def main(argv):
     conn = conn.iloc[:, :-1]
     conn = conn.apply( pd.to_numeric, errors='coerce')
     fig, ax = plt.subplots(figsize=(15,15))
-    here = sns.heatmap(conn,square=True,cmap="jet",xticklabels=True, yticklabels=True,cbar_kws={'label': 'Number of Streamlines'})
+    mask=np.zeros_like(conn)
+    mask[conn <1] = 1
+    here = sns.heatmap(conn,mask=mask,square=True,cmap="jet",xticklabels=True, yticklabels=True,cbar_kws={'label': 'Number of Streamlines'})
+    here.set_facecolor('xkcd:black')
     sns.set(font_scale=1.4)
     figure = plt.gcf()
     figure.set_size_inches(20, 20)
@@ -418,6 +435,29 @@ def main(argv):
     table1.set_fontsize(300)
     table1.scale(8, 8)
     plt.savefig(join(args.dir,'QC_Table.jpg'),bbox_inches='tight')
+    
+    #Create DIPY FA color image
+    fname_t1 = join(args.dir,'dti_eddycuda_corrected_data.nii.gz')
+    img = nib.load(fname_t1)
+    data = img.get_data()
+    bval = join(args.dir,image_dict["dti"]["bval"])
+    bvec = join(args.dir,'dti_eddycuda_corrected_data.eddy_rotated_bvecs')
+    bvals, bvecs = read_bvals_bvecs(bval, bvec)
+    gtab = gradient_table(bvals, bvecs)
+    ten = TensorModel(gtab)
+    mask1=str(glob.glob(join(args.dir,'*mask.nii.gz'))).replace("'", '').replace("]", '').replace("[", '')
+    print(mask1)
+    mask1=nib.load(mask1)
+    mask1=mask1.get_data()
+    tenfit = ten.fit(data,mask=mask1)
+    fa = fractional_anisotropy(tenfit.evals)
+    cfa = color_fa(fa, tenfit.evecs)
+    fig, ax = plt.subplots(1,2, figsize=(10,10))
+    ax[0].imshow(ndimage.rotate(cfa[:, :, cfa.shape[2]//2, :], 90, reshape=False))
+    fig.delaxes(ax[1])
+    fig.savefig(join(args.dir,'FAcolor.png'), dpi=700,
+                bbox_inches="tight")
+    
     
     ############Creat Mosaic of T1 image
     fname_t1 = join(args.dir,basename(image_dict["structural"]["nifti"])) 
@@ -603,6 +643,8 @@ def main(argv):
     for files in outfile:
         files= basename(str(files)).replace("'", '').replace("]", '').replace("[",'')
         shutil.move(join(args.dir,'Structural_Connectomes','Files',files), join(args.dir,'Structural_Connectomes',files))
+    #copy key file to Files directory
+    copy(str(join(os.path.abspath(os.getcwd()),'DSIParams.txt')),join(args.dir,'Structural_Connectomes','Files'))
     
     #Rename some files
     FA = glob.glob(join(args.dir,'Structural_Connectomes',"*FA.nii.gz"))
@@ -635,13 +677,24 @@ def main(argv):
     Conn= join(os.path.abspath(args.dir),'Structural_Connectomes','Files','connectivity_matrix.jpg')
     Bin = join(os.path.abspath(args.dir),'Structural_Connectomes','connectome_matrix_binary.csv')
     Weight = join(os.path.abspath(args.dir),'Structural_Connectomes','connectome_matrix_weighted.csv')
+    FAcol= join(os.path.abspath(args.dir),'Structural_Connectomes','Files','FAcolor.png')
     GraphTheoryMetrics = str(glob.glob(join(args.dir,'Structural_Connectomes','Files','*count.end.network_measures.txt'))).replace("'", '').replace("]", '').replace("[",'')
-
+    print(GraphTheoryMetrics)
     all_graph1 = pd.read_csv(str(glob.glob(join(args.dir,'Structural_Connectomes','Files','*count.end.network_measures.txt'))).replace("'", '').replace("]", '').replace("[",''),
                        error_bad_lines=False,delim_whitespace=True,header=None,warn_bad_lines=False) 
     all_graph1_T = all_graph1.T
+    new_header = all_graph1_T.iloc[0] 
+    all_graph1_T = all_graph1_T[1:] 
+    all_graph1_T.columns = new_header 
     all_graph1_T.to_csv(join(args.dir,'Structural_Connectomes','Graph_Theoretic_Measures.csv'), index=None)
+    GraphSimp = join(os.path.abspath(args.dir),'Structural_Connectomes','Graph_Theoretic_Measures.csv')
+    DSIparam = str(join(os.path.abspath(args.dir),'Structural_Connectomes','Files','DSIParams.txt'))
     
+    Atlas =str(glob.glob(join(args.dir,'Structural_Connectomes','Files','*count.end.network_measures.txt')))
+    start = Atlas.find("connectivity_countmeasures.txt.") + len("connectivity_countmeasures.txt.")
+    end = Atlas.find(".count.end.network_measures.txt")
+    Atlas = str(Atlas[start:end])
+    Atlas = ('The number of streamlines connecting nodes of the ' + Atlas + ' atlas')
     Dens = all_graph1.iloc[0,1]
     clust_b = all_graph1.iloc[1,1]
     clust_w =all_graph1.iloc[2,1]
@@ -691,33 +744,38 @@ def main(argv):
                 <h2>Subject Head Motion</h2>
                 <img src='{Motion}' width="1000"><br>
                 <a href="{Motion}">Motion Plots</a>
+                <h2>Color Fractional Anisotropy Image</h2>
+                <img src='{FAcol}' width="250"><br>
+                <a href="{FAcol}">Colored Fractional Anisotropy</a>
                 <h2>Tractography Results</h2>
                 <img src='{Tracts}' width="1000"><br>
                 <a href="{Tracts}">Tractography Images</a>
                 <h2>Connectivity Matrix</h2>
+                <p>{Atlas}</p>
                 <img src='{Conn}' width="1500"><br>
                 <a href="{Conn}">Connectivity Matrix Image</a>
                 <h2>Network Measures</h2>
-                <a href="{GraphTheoryMetrics}">Graph Density:<a> {Dens} <br>
-                <a href="{GraphTheoryMetrics}">Clustering Coefficient Ave Binary:<a> {clust_b} <br>
-                <a href="{GraphTheoryMetrics}">Clustering Coefficient Ave Weighted:<a> {clust_w} <br>
-                <a href="{GraphTheoryMetrics}">Transitivity Binary:<a> {tran_b} <br>
-                <a href="{GraphTheoryMetrics}">Transitivity Weighted:<a> {tran_w} <br>
-                <a href="{GraphTheoryMetrics}">Network Characteristic Path Length Binary:<a> {netch_b} <br>
-                <a href="{GraphTheoryMetrics}">Network Characteristic Path Length Weighted:<a> {netch_w} <br>
-                <a href="{GraphTheoryMetrics}">Small Worldness Binary:<a> {SW_b} <br>
-                <a href="{GraphTheoryMetrics}">Small Worldness Weighted:<a> {SW_w} <br>
-                <a href="{GraphTheoryMetrics}">Global Efficiency Binary:<a> {globe_b} <br>
-                <a href="{GraphTheoryMetrics}">Global Efficiency Weighted:<a> {globe_w} <br>
-                <a href="{GraphTheoryMetrics}">Graph Diameter Binary:<a> {dia_b} <br>
-                <a href="{GraphTheoryMetrics}">Graph Diameter Weighted:<a> {dia_w} <br>
-                <a href="{GraphTheoryMetrics}">Graph Radius Binary:<a> {rad_b} <br>
-                <a href="{GraphTheoryMetrics}">Graph Radius Weighted:<a> {rad_w} <br>
-                <a href="{GraphTheoryMetrics}">Assortativity Coefficient Binary:<a> {asso_b} <br>
-                <a href="{GraphTheoryMetrics}">Assortativity Coefficient Weighted:<a> {asso_w} <br>
+                <a href="{GraphSimp}">Graph Density:<a> {Dens} <br>
+                <a href="{GraphSimp}">Clustering Coefficient Ave Binary:<a> {clust_b} <br>
+                <a href="{GraphSimp}">Clustering Coefficient Ave Weighted:<a> {clust_w} <br>
+                <a href="{GraphSimp}">Transitivity Binary:<a> {tran_b} <br>
+                <a href="{GraphSimp}">Transitivity Weighted:<a> {tran_w} <br>
+                <a href="{GraphSimp}">Network Characteristic Path Length Binary:<a> {netch_b} <br>
+                <a href="{GraphSimp}">Network Characteristic Path Length Weighted:<a> {netch_w} <br>
+                <a href="{GraphSimp}">Small Worldness Binary:<a> {SW_b} <br>
+                <a href="{GraphSimp}">Small Worldness Weighted:<a> {SW_w} <br>
+                <a href="{GraphSimp}">Global Efficiency Binary:<a> {globe_b} <br>
+                <a href="{GraphSimp}">Global Efficiency Weighted:<a> {globe_w} <br>
+                <a href="{GraphSimp}">Graph Diameter Binary:<a> {dia_b} <br>
+                <a href="{GraphSimp}">Graph Diameter Weighted:<a> {dia_w} <br>
+                <a href="{GraphSimp}">Graph Radius Binary:<a> {rad_b} <br>
+                <a href="{GraphSimp}">Graph Radius Weighted:<a> {rad_w} <br>
+                <a href="{GraphSimp}">Assortativity Coefficient Binary:<a> {asso_b} <br>
+                <a href="{GraphSimp}">Assortativity Coefficient Weighted:<a> {asso_w} <br>
                 <h2>Additional Files</h2><br>
-                <a href="{GraphTheoryMetrics}">All Graph Theory Metrics csv<a><br>
-                <a href="{Bin}">Binary Adjacency Matrix</a><br>
+                <a href="{GraphTheoryMetrics}">All Graph Theory Metrics<a> <br>
+                <a href="{Bin}">Binary Adjacency Matrix<a> <br>
+                <a href="{DSIparam}">DSI Params File<a><br>
                 <a href="{Weight}">Weighted Adjacency Matrix</a>
             </body>
         </html>
@@ -729,11 +787,3 @@ def main(argv):
     
 if __name__ == "__main__":
     main(sys.argv[1:])
-    
-    
-    
-    
-    
-    
-    
-    
