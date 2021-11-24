@@ -166,7 +166,7 @@ def main(argv):
         "bet",input_file,output_file,"-f","0.3","-g","0","-m"
     ]
 
-    #fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=bet_command)
+    fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=bet_command)
     
     
     ######create supplementary files to run eddy
@@ -230,7 +230,7 @@ def main(argv):
                 "--index="+index_file,"--bvecs="+bvec, "--bvals="+bval,"--out="+out_file
         ]
     
-    #fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
+    fsl(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=eddy_command)
     
     #dti fit for FA and MD maps
     logger.info('Running FSLs DTIfit')   
@@ -254,7 +254,7 @@ def main(argv):
                 "--source="+source_file,"--output="+out_file,
                 "--bval="+bval,"--bvec="+newbvec]
 
-    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_src)
     
  # check src file for quality
     logger.info('Running Quality Control for SRC')
@@ -262,7 +262,7 @@ def main(argv):
     dsiquality = ["dsi_studio","--action=qc",
                 "--source="+source_file]
 
-    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiquality)
     
     
     # reconstruct the images (create fib file; QSDR method=7,GQI method = 4)
@@ -281,7 +281,7 @@ def main(argv):
                   "--check_btable="+regparams['check_btable:'],
                   "--other_image="+other_image]
 
-    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsirecon)
     
     # run robust tractography whole brain
     logger.info('Running Whole Brain Tractography Analysis')
@@ -305,7 +305,7 @@ def main(argv):
                     "--max_length="+regparams['max_length:'],
                     "--output="+output_file]
 
-    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsiruntract)
     
     
     # generate connectivity matrix and summary statistics
@@ -322,7 +322,7 @@ def main(argv):
                       "--connectivity_type=end",
                       "--output="+output_file]
 
-    #dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
+    dsistudio(source_dir=args.dir,out_dir=args.dir,logger=logger,kwargs=dsi_conn_comp)
 
     #Generate images of tractography 
     logger.info('Creating Tractography Images')
@@ -403,8 +403,12 @@ def main(argv):
     fig, ax = plt.subplots(figsize=(15,15))
     mask=np.zeros_like(conn)
     mask[conn <1] = 1
-    here = sns.heatmap(conn,mask=mask,square=True,cmap="jet",xticklabels=True, yticklabels=True,cbar_kws={'label': 'Number of Streamlines'})
-    here.set_facecolor('xkcd:black')
+    maxi = conn.max(numeric_only=True).max()
+    split = maxi/2
+    quart1=maxi*.25
+    quart2=maxi*.75
+    here = sns.heatmap(conn,mask=mask,square=True,cmap="jet",xticklabels=True, yticklabels=True,cbar_kws={'label': 'Number of Streamlines','ticks':[1,int(quart1),int(split),int(quart2),maxi]},linewidths=.2)
+    here.set_facecolor('xkcd:gray')
     sns.set(font_scale=1.4)
     figure = plt.gcf()
     figure.set_size_inches(20, 20)
