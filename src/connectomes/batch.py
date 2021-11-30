@@ -143,7 +143,7 @@ def main(argv):
     args.dir= os.path.abspath(args.dir)
 
     # find structural and DTI images
-    image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=False)
+    image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=True)
     
     #load parameters file
     #upload DSIParams file for reconstruction and tractography
