@@ -165,7 +165,6 @@ def main(argv):
         "bet",input_file,output_file,"-f","0.3","-g","0","-m"
     ]
 
-
     fsl(source_dir=args.dir,out_dir=args.dir,input_file=input_file,logger=logger,output_file=output_file,kwargs=bet_command)
     
 
