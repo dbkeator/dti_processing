@@ -208,7 +208,7 @@ def process_dti(image_dict, logger, args):
                 "--index=" + index_file, "--bvecs=" + bvec, "--bvals=" + bval, "--out=" + out_file
     ]
 
-   # fsl(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=eddy_command)
+    fsl(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=eddy_command)
 
     # dti fit for FA and MD maps
     logger.info('Running FSLs DTIfit')
@@ -661,7 +661,7 @@ def process_dti(image_dict, logger, args):
     Conn = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'connectivity_matrix.jpg')
     Bin = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'connectome_matrix_binary.csv')
     Weight = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'connectome_matrix_weighted.csv')
-    FAcol = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'FAcolor.png')
+    FAcol = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'mosaic_FA.png')
     GraphTheoryMetrics = str(
         glob.glob(join(args.dir, 'Structural_Connectomes', 'Files', '*count.end.network_measures.txt'))).replace("'",
                                                                                                                  '').replace(
@@ -734,9 +734,9 @@ def process_dti(image_dict, logger, args):
                     <h2>Subject Head Motion</h2>
                     <img src='{Motion}' width="1000"><br>
                     <a href="{Motion}">Motion Plots</a>
-                    <h2>Color Fractional Anisotropy Image</h2>
-                    <img src='{FAcol}' width="250"><br>
-                    <a href="{FAcol}">Colored Fractional Anisotropy</a>
+                    <h2>Fractional Anisotropy Mosaic</h2>
+                    <img src='{FAcol}' width="800"><br>
+                    <a href="{FAcol}">Fractional Anisotropy Mosaic</a>
                     <h2>Tractography Results</h2>
                     <img src='{Tracts}' width="1000"><br>
                     <a href="{Tracts}">Tractography Images</a>
