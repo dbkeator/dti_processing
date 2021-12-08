@@ -541,8 +541,9 @@ def process_dti(image_dict, logger, args):
     Scene.projection('parallel')
     result_position.message = ''
     result_value.message = ''
-    cnt = 0
+    cnt = 1
     X, Y, Z = slice_actor.shape[:3]
+    Z = Z-2
     rows = 10
     cols = 4
     border = 70
