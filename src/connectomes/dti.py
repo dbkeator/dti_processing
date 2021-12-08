@@ -3,6 +3,7 @@ import os
 from os import system
 
 from utils import ants_registration,dsistudio,fsl,dcm2niix,find_convert_images
+from __version__ import VERSION
 
 import pandas as pd
 import numpy as np
@@ -101,6 +102,9 @@ key2 = {"input prefix" : "raw DWI file from given directory",
         "MPRAGE" : "T1 weighted image used in processing",
         "FAcolor.png": "Colored FA PNG Image"
         }
+
+# minimum R-squared value to be considered a good fit of DTI to template
+MIN_R2 = 60
 
 
 def plot_df(df2, x, y, filename, Motion, plt, args,title="", xlabel='Time', ylabel='Motion', dpi=200):
@@ -644,17 +648,33 @@ def process_dti(image_dict, logger, args):
     os.rename(join(args.dir, 'Structural_Connectomes', 'Files', "key2.txt"),
               join(args.dir, 'Structural_Connectomes', 'Files', 'key.txt'))
 
+    # create html report
+    create_html(args, image_dict)
+
+
+
+def create_html(args,image_dict):
+    '''
+    This function creates the html report called report.html and lives in the StructuralConnectomes
+    folder.
+    :param args: args structure
+    :param image_dict: images dictionary
+    :return: None
+    '''
+
     # Create HTML report
     page_title_text = 'Connectometry Report'
     title_text = 'Structural Connectivity Report'
-    patient_file = ('Patient Folder =' + args.dir)
-    Date = join('Scan Process Date: ', str(datetime.datetime.now()))
-    ScanTime = join('Scan Date:',
-                    str(time.ctime(os.path.getctime(join(args.dir, basename(image_dict["structural"]["nifti"]))))))
-    Diff = join('DTI Scan: ', str(basename(image_dict["dti"]["nifti"])))
-    Bval = join('DTI b-value: ', str(basename(image_dict["dti"]["bval"])))
-    Bvec = join('DTI b-vector: ', str(basename(image_dict["dti"]["bvec"])))
-    MPRAGE = join('Structural Scan: ', str(basename(image_dict["structural"]["nifti"])))
+    patient_file = args.dir
+    Date = str(datetime.datetime.now())
+    ScanTime =  str(time.ctime(os.path.getctime(join(args.dir, basename(image_dict["structural"]["nifti"])))))
+
+
+    Diff = str(basename(image_dict["dti"]["nifti"]))
+    Bval = str(basename(image_dict["dti"]["bval"]))
+    Bvec = str(basename(image_dict["dti"]["bvec"]))
+    MPRAGE = str(basename(image_dict["structural"]["nifti"]))
+    SoftwareVersion = 'Software Version: ' + VERSION
     QC = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'QC_Table.jpg')
     Motion = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'motioncombined.jpg')
     Tracts = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'tractography.jpg')
@@ -706,72 +726,70 @@ def process_dti(image_dict, logger, args):
     end = R2.find(".fib.gz")
     R2 = R2[start:end]
     R2 = int(R2)
-    if R2 >= 60:
+    if R2 >= MIN_R2:
         Com = ('The R-squared value is ' + str(R2) + ' indicating good fit to the template')
     else:
         Com = ('WARNING PLEASE CHECK DATA: The R-squared value is ' + str(
             R2) + ' indicating a weak fit to the template space')
 
     html = f'''
-            <html>
-                <head>
-                    <title>{page_title_text}</title>
-                </head>
-                <body>
-                    <h2>{title_text}</h1>
-                    <p>{Date}</h1>
-                    <p>{ScanTime}</h1>
-                    <p>{Diff}</p>
-                    <p>{Bval}</p>
-                    <p>{Bvec}</p>
-                    <p>{MPRAGE}</p>
-                    <p>{patient_file}</p>
-                    <p>Software Version 1.1</p>
-                    <h2>Quality Control</h2>
-                    <p>{Com}</p>
-                    <img src='{QC}' width="1200"><br>
-                    <a href="{QC}">Quality Control</a>
-                    <h2>Subject Head Motion</h2>
-                    <img src='{Motion}' width="1000"><br>
-                    <a href="{Motion}">Motion Plots</a>
-                    <h2>Fractional Anisotropy Mosaic</h2>
-                    <img src='{FAcol}' width="800"><br>
-                    <a href="{FAcol}">Fractional Anisotropy Mosaic</a>
-                    <h2>Tractography Results</h2>
-                    <img src='{Tracts}' width="1000"><br>
-                    <a href="{Tracts}">Tractography Images</a>
-                    <h2>Connectivity Matrix</h2>
-                    <p>{Atlas}</p>
-                    <img src='{Conn}' width="1500"><br>
-                    <a href="{Conn}">Connectivity Matrix Image</a>
-                    <h2>Network Measures</h2>
-                    <a href="{GraphSimp}">Graph Density:<a> {Dens} <br>
-                    <a href="{GraphSimp}">Clustering Coefficient Ave Binary:<a> {clust_b} <br>
-                    <a href="{GraphSimp}">Clustering Coefficient Ave Weighted:<a> {clust_w} <br>
-                    <a href="{GraphSimp}">Transitivity Binary:<a> {tran_b} <br>
-                    <a href="{GraphSimp}">Transitivity Weighted:<a> {tran_w} <br>
-                    <a href="{GraphSimp}">Network Characteristic Path Length Binary:<a> {netch_b} <br>
-                    <a href="{GraphSimp}">Network Characteristic Path Length Weighted:<a> {netch_w} <br>
-                    <a href="{GraphSimp}">Small Worldness Binary:<a> {SW_b} <br>
-                    <a href="{GraphSimp}">Small Worldness Weighted:<a> {SW_w} <br>
-                    <a href="{GraphSimp}">Global Efficiency Binary:<a> {globe_b} <br>
-                    <a href="{GraphSimp}">Global Efficiency Weighted:<a> {globe_w} <br>
-                    <a href="{GraphSimp}">Graph Diameter Binary:<a> {dia_b} <br>
-                    <a href="{GraphSimp}">Graph Diameter Weighted:<a> {dia_w} <br>
-                    <a href="{GraphSimp}">Graph Radius Binary:<a> {rad_b} <br>
-                    <a href="{GraphSimp}">Graph Radius Weighted:<a> {rad_w} <br>
-                    <a href="{GraphSimp}">Assortativity Coefficient Binary:<a> {asso_b} <br>
-                    <a href="{GraphSimp}">Assortativity Coefficient Weighted:<a> {asso_w} <br>
-                    <h2>Additional Files</h2><br>
-                    <a href="{GraphTheoryMetrics}">All Graph Theory Metrics<a> <br>
-                    <a href="{Bin}">Binary Adjacency Matrix<a> <br>
-                    <a href="{DSIparam}">DSI Params File<a><br>
-                    <a href="{Weight}">Weighted Adjacency Matrix</a>
-                </body>
-            </html>
-            '''
+                    <html>
+                        <head>
+                            <title>{page_title_text}</title>
+                        </head>
+                        <body>
+                            <h2>{title_text}</h1>
+                            <p><b>Scan Process Date:</b> {Date}</h1>
+                            <p><b>Scan Date:</b> {ScanTime}</h1>
+                            <p><b>DTI Scan:</b> {Diff}</p>
+                            <p><b>DTI b-value:</b> {Bval}</p>
+                            <p><b>DTI b-vector:</b> {Bvec}</p>
+                            <p><b>Structural Scan:</b> {MPRAGE}</p>
+                            <p><b>Patient Folder:</b> {patient_file}</p>
+                            <p><b>{SoftwareVersion}</b></p>
+                            <h2>Quality Control</h2>
+                            <p>{Com}</p>
+                            <img src='{QC}' width="1200"><br>
+                            <a href="{QC}">Quality Control</a>
+                            <h2>Subject Head Motion</h2>
+                            <img src='{Motion}' width="1000"><br>
+                            <a href="{Motion}">Motion Plots</a>
+                            <h2>Fractional Anisotropy Mosaic</h2>
+                            <img src='{FAcol}' width="800"><br>
+                            <a href="{FAcol}">Fractional Anisotropy Mosaic</a>
+                            <h2>Tractography Results</h2>
+                            <img src='{Tracts}' width="1000"><br>
+                            <a href="{Tracts}">Tractography Images</a>
+                            <h2>Connectivity Matrix</h2>
+                            <p>{Atlas}</p>
+                            <img src='{Conn}' width="1500"><br>
+                            <a href="{Conn}">Connectivity Matrix Image</a>
+                            <h2>Network Measures</h2>
+                            <a href="{GraphSimp}">Graph Density:<a> {Dens} <br>
+                            <a href="{GraphSimp}">Clustering Coefficient Ave Binary:<a> {clust_b} <br>
+                            <a href="{GraphSimp}">Clustering Coefficient Ave Weighted:<a> {clust_w} <br>
+                            <a href="{GraphSimp}">Transitivity Binary:<a> {tran_b} <br>
+                            <a href="{GraphSimp}">Transitivity Weighted:<a> {tran_w} <br>
+                            <a href="{GraphSimp}">Network Characteristic Path Length Binary:<a> {netch_b} <br>
+                            <a href="{GraphSimp}">Network Characteristic Path Length Weighted:<a> {netch_w} <br>
+                            <a href="{GraphSimp}">Small Worldness Binary:<a> {SW_b} <br>
+                            <a href="{GraphSimp}">Small Worldness Weighted:<a> {SW_w} <br>
+                            <a href="{GraphSimp}">Global Efficiency Binary:<a> {globe_b} <br>
+                            <a href="{GraphSimp}">Global Efficiency Weighted:<a> {globe_w} <br>
+                            <a href="{GraphSimp}">Graph Diameter Binary:<a> {dia_b} <br>
+                            <a href="{GraphSimp}">Graph Diameter Weighted:<a> {dia_w} <br>
+                            <a href="{GraphSimp}">Graph Radius Binary:<a> {rad_b} <br>
+                            <a href="{GraphSimp}">Graph Radius Weighted:<a> {rad_w} <br>
+                            <a href="{GraphSimp}">Assortativity Coefficient Binary:<a> {asso_b} <br>
+                            <a href="{GraphSimp}">Assortativity Coefficient Weighted:<a> {asso_w} <br>
+                            <h2>Additional Files</h2><br>
+                            <a href="{GraphTheoryMetrics}">All Graph Theory Metrics<a> <br>
+                            <a href="{Bin}">Binary Adjacency Matrix<a> <br>
+                            <a href="{DSIparam}">DSI Params File<a><br>
+                            <a href="{Weight}">Weighted Adjacency Matrix</a>
+                        </body>
+                    </html>
+                    '''
     # 3. Write the html string as an HTML file
     with open(join(args.dir, 'Structural_Connectomes', 'report.html'), 'w') as f:
         f.write(html)
-
-

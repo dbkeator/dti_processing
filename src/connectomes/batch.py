@@ -58,6 +58,10 @@ def main(argv):
 
     # find structural and DTI images
     image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=False)
+
+    # Testing
+    #from dti import create_html
+    #create_html(args, image_dict)
     
     # process DTI images
     process_dti(image_dict,logger,args)
