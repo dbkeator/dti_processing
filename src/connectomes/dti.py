@@ -106,6 +106,8 @@ key2 = {"input prefix" : "raw DWI file from given directory",
 # minimum R-squared value to be considered a good fit of DTI to template
 MIN_R2 = 60
 
+# Minimum number of DTI directions
+DTI_DIR_MIN = 30
 
 def plot_df(df2, x, y, filename, Motion, plt, args,title="", xlabel='Time', ylabel='Motion', dpi=200):
     plt.figure(figsize=(7, 4), dpi=dpi)
@@ -185,8 +187,32 @@ def process_dti(image_dict, logger, args):
     df1 = df1.columns.to_frame().T.append(df1, ignore_index=True)
     df1.columns = range(len(df1.columns))
     index = len(df1.columns)
-    if len(df1.columns) < 30:
+    if len(df1.columns) < DTI_DIR_MIN:
         logger.error('Too Few Directions to Reconstruct Images')
+        # clean up files and things
+        if not isdir(join(args.dir, 'Structural_Connectomes')):
+            os.mkdir(join(args.dir, 'Structural_Connectomes'))
+            os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
+        else:
+            # remove files in directory
+            shutil.rmtree(join(args.dir, 'Structural_Connectomes'))
+            os.mkdir(join(args.dir, 'Structural_Connectomes'))
+            os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
+
+        # move various files to final locations
+        files = glob.glob(join(args.dir, '*_brain*'))
+        for file in files:
+            shutil.move(join(args.dir,file),join(args.dir, 'Structural_Connectomes', 'Files'))
+        # move other files
+        shutil.move(join(args.dir,'acqp_params.txt'),join(args.dir, 'Structural_Connectomes', 'Files'))
+        shutil.move(join(args.dir, 'DSIParams.txt'), join(args.dir, 'Structural_Connectomes', 'Files'))
+        logger.handlers[0].close()
+        shutil.copy(logger.handlers[0].baseFilename,join(args.dir, 'Structural_Connectomes'))
+        os.remove(logger.handlers[0].baseFilename)
+        # create an empty html report
+        create_html(args=args,image_dict=image_dict, error = \
+            'Too few directions to reconstruct connectomes.  Scan has ' + str(len(df1.columns)) +
+            ' directions but minimum for diffusion processing is ' + str(DTI_DIR_MIN))
         return
     indexhere = [1] * index
     indexfinal = str(indexhere)
@@ -211,7 +237,7 @@ def process_dti(image_dict, logger, args):
                 "--index=" + index_file, "--bvecs=" + bvec, "--bvals=" + bval, "--out=" + out_file
     ]
 
-    fsl(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=eddy_command)
+    #fsl(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=eddy_command)
 
     # dti fit for FA and MD maps
     logger.info('Running FSLs DTIfit')
@@ -608,7 +634,8 @@ def process_dti(image_dict, logger, args):
     # Sort files
     file_list = glob.glob(join(args.dir, '*jpg')) + glob.glob(join(args.dir, '*png')) + glob.glob(
         join(args.dir, '*txt*')) + glob.glob(join(args.dir, '*dti*')) + glob.glob(
-        join(args.dir, '*src*gz')) + glob.glob(join(args.dir, '*trk.gz')) + glob.glob(join(args.dir, '*csv'))
+        join(args.dir, '*src*gz')) + glob.glob(join(args.dir, '*trk.gz')) + glob.glob(join(args.dir, '*csv')) \
+            + glob.glob(join(args.dir, '*_brain*'))
 
     # if the output directory doesn't exist then create it.
     if not isdir (join(args.dir, 'Structural_Connectomes')):
@@ -653,7 +680,7 @@ def process_dti(image_dict, logger, args):
 
 
 
-def create_html(args,image_dict):
+def create_html(args,image_dict,error=None):
     '''
     This function creates the html report called report.html and lives in the StructuralConnectomes
     folder.
@@ -667,14 +694,44 @@ def create_html(args,image_dict):
     title_text = 'Structural Connectivity Report'
     patient_file = args.dir
     Date = str(datetime.datetime.now())
-    ScanTime =  str(time.ctime(os.path.getctime(join(args.dir, basename(image_dict["structural"]["nifti"])))))
+    # checking keys just in case we've reached this in error
+    if 'structural' in image_dict.keys():
+        ScanTime =  str(time.ctime(os.path.getctime(join(args.dir, basename(image_dict["structural"]["nifti"])))))
+        MPRAGE = str(basename(image_dict["structural"]["nifti"]))
 
+    if 'dti' in image_dict.keys():
+        Diff = str(basename(image_dict["dti"]["nifti"]))
+        Bval = str(basename(image_dict["dti"]["bval"]))
+        Bvec = str(basename(image_dict["dti"]["bvec"]))
 
-    Diff = str(basename(image_dict["dti"]["nifti"]))
-    Bval = str(basename(image_dict["dti"]["bval"]))
-    Bvec = str(basename(image_dict["dti"]["bvec"]))
-    MPRAGE = str(basename(image_dict["structural"]["nifti"]))
     SoftwareVersion = 'Software Version: ' + VERSION
+
+    # if the software has errored out then simply print the error to HTML file and exit
+    if error != None:
+        html = f'''
+                            <html>
+                                <head>
+                                    <title>{page_title_text}</title>
+                                </head>
+                                <body>
+                                    <h2>{title_text}</h1>
+                                    <p><b>Scan Process Date:</b> {Date}</h1>
+                                    <p><b>Scan Date:</b> {ScanTime}</h1>
+                                    <p><b>DTI Scan:</b> {Diff}</p>
+                                    <p><b>DTI b-value:</b> {Bval}</p>
+                                    <p><b>DTI b-vector:</b> {Bvec}</p>
+                                    <p><b>Structural Scan:</b> {MPRAGE}</p>
+                                    <p><b>Patient Folder:</b> {patient_file}</p>
+                                    <p><b>{SoftwareVersion}</b></p>
+                                    <p></p>
+                                    <p><b>{error} </b></p>
+        '''
+        # 3. Write the html string as an HTML file
+        with open(join(args.dir, 'Structural_Connectomes', 'report.html'), 'w') as f:
+            f.write(html)
+        return
+
+
     QC = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'QC_Table.jpg')
     Motion = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'motioncombined.jpg')
     Tracts = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'tractography.jpg')
