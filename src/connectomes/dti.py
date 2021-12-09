@@ -187,8 +187,7 @@ def process_dti(image_dict, logger, args):
     index = len(df1.columns)
     if len(df1.columns) < 30:
         logger.error('Too Few Directions to Reconstruct Images')
-        print('System Failure...Too Few Directions to Reconstruct Images')
-        sys.exit()
+        return
     indexhere = [1] * index
     indexfinal = str(indexhere)
     indexfinal = indexfinal.replace(',', '').replace('[', '').replace(']', '')

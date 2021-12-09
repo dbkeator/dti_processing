@@ -86,7 +86,7 @@ def find_convert_images(source_dir, out_dir, logger,convert=False):
     for file in json_mprage:
         with open(file) as fp:
             file_json = json.load(fp)
-        if sum(file_json["ImageOrientationPatientDICOM"]) == 0.0:
+        if int(file_json["SeriesNumber"]) > 50:
             continue
         else:
             # load NIfTI header and get voxel and image dimensions
@@ -134,8 +134,9 @@ def find_convert_images(source_dir, out_dir, logger,convert=False):
     if (len(output_dict['dti'])==0) or (len(output_dict['structural'])==0):
         logger.error("No DTI or structural scans found in: %s" %source_dir)
         logger.error("Unable to continue...")
-
-    return output_dict
+        return -1
+    else:
+        return output_dict
 
 
 def dcm2niix(source_dir,logger,source_file=None):

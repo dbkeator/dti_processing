@@ -11,7 +11,7 @@ import os
 
 from os import system
 
-from os.path import join
+from os.path import join,isfile,isdir
 from argparse import ArgumentParser
 
 try:
@@ -24,6 +24,7 @@ except ImportError:
 
 import logging
 import time
+import copy
 
 
 
@@ -55,16 +56,48 @@ def main(argv):
    
     args.dir= os.path.abspath(args.dir)
 
+    # get listing if args.dir
+    # if this is a DICOM directory exported from OsiriX then it will have a DICOMDIR file.  Else it's
+    # a directory containing subdirectories for participants so process them as separate directories
 
-    # find structural and DTI images
-    image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=False)
+    files = os.listdir(args.dir)
 
-    # Testing
-    #from dti import create_html
-    #create_html(args, image_dict)
-    
-    # process DTI images
-    process_dti(image_dict,logger,args)
+    # if file DICOMDIR is in listing then args.dir is a directory containing DICOM images for a patient
+    if ('DICOMDIR' in files):
+
+        # find structural and DTI images
+        image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=True)
+
+        # check if image_dict does not contain valid images
+        if image_dict == -1:
+            exit(-1)
+
+        # process DTI images
+        process_dti(image_dict,logger,args)
+
+    # else args.dir is a directory containing subdirectories for patients
+    else:
+        # get only directories
+        directories = [d for d in files if isdir(join(args.dir, d))]
+
+        for dir in directories:
+            # ignore MAC directories we don't care about
+            if '.DS_STORE' in dir:
+                continue
+            else:
+                # process patient
+                # find structural and DTI images
+                image_dict = find_convert_images(source_dir=join(args.dir,dir), out_dir=join(args.dir,dir), logger=logger, convert=True)
+
+                # check if image_dict does not contain valid images
+                if image_dict == -1:
+                    continue
+
+                # set args.dir to new directory to process since we're looping through a directory with subdirectories
+                args_copy =  copy.deepcopy(args)
+                args_copy.dir = join(args.dir,dir)
+                # process DTI images
+                process_dti(image_dict, logger, args_copy)
 
     
 if __name__ == "__main__":
