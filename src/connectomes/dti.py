@@ -298,7 +298,7 @@ def process_dti(image_dict, logger, args):
                      "--tract=" + tract_file,
                      "--connectivity=" + atlas,
                      "--connectivity_threshold=" + regparams['Threshold:'],
-                     "--connectivity_value=count",
+                     "--connectivity_value=count,trk",
                      "--connectivity_type=end",
                      "--output=" + output_file]
 
@@ -618,12 +618,18 @@ def process_dti(image_dict, logger, args):
     if not isdir (join(args.dir, 'Structural_Connectomes')):
         os.mkdir(join(args.dir, 'Structural_Connectomes'))
         os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
+        os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files','Tracts'))
 
     # copy files to final destination
     for files in file_list:
         files = basename(str(files)).replace("'", '').replace("]", '').replace("[", '')
         shutil.move(join(args.dir, files), join(args.dir, 'Structural_Connectomes', 'Files', files))
 
+    tracts = glob.glob(join(args.dir,'*tt.gz'))
+    for tract in tracts:
+        tract = basename(str(tract)).replace("'", '').replace("]", '').replace("[", '')
+        shutil.move(join(args.dir,tract),join(args.dir, 'Structural_Connectomes', 'Files','Tracts',tract))
+    
     # move out MPRAGE, FA, MD, and weighted and  file to save as csv and add to 'key'
     outfile = [glob.glob(join(args.dir, 'Structural_Connectomes', 'Files', "*FA.nii.gz")),
                glob.glob(join(args.dir, 'Structural_Connectomes', 'Files', "*MD.nii.gz")),
