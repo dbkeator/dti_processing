@@ -76,7 +76,8 @@ key1 = {"FA" : "Fractional Anisotropy NIFTI Image",
        "MD" : "Mean Diffusivity NIFTI Image",
        "connectome_matrix_binary.csv": "Binary adjacency (connectivity) matrix of the atlas adjusted by 0.001 of the maximum",
        "connectome_matrix_weighted.csv":"Weighted adjacency (connectivity) matrix of the atlas where weights are equavalent to the number of streamlines connecting each node pair",
-       "Connectometry_Report.html" : "Connectivity Analysis Report in html format"
+       "Connectometry_Report.html" : "Connectivity Analysis Report in html format",
+       "connectome_matrix_normalized_weighted.csv":"Weighted adjacency (connectivity) matrix of the atlas where weights are normalized from a by the graph maximum and range from 0 to 1"
        }
 
 key2 = {"input prefix" : "raw DWI file from given directory",
@@ -323,7 +324,7 @@ def process_dti(image_dict, logger, args):
                      "--tract=" + tract_file,
                      "--connectivity=" + atlas,
                      "--connectivity_threshold=" + regparams['Threshold:'],
-                     "--connectivity_value=count",
+                     "--connectivity_value=count,trk",
                      "--connectivity_type=end",
                      "--output=" + output_file]
 
@@ -603,6 +604,9 @@ def process_dti(image_dict, logger, args):
     conn = conn.apply(pd.to_numeric, errors='coerce')
     conn.to_csv(join(args.dir, 'connectome_matrix_weighted.csv'))
     maxi = conn.max(numeric_only=True).max()
+    norm = conn/maxi
+    norm.to_csv(join(args.dir, 'connectome_matrix_normalized_weighted.csv'))
+    
     conn[conn < 0.001 * maxi] = 0
     conn[conn > 0.001 * maxi] = 1
     conn.to_csv(join(args.dir, 'connectome_matrix_binary.csv'))
@@ -641,18 +645,25 @@ def process_dti(image_dict, logger, args):
     if not isdir (join(args.dir, 'Structural_Connectomes')):
         os.mkdir(join(args.dir, 'Structural_Connectomes'))
         os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
+        os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files','Tracts'))
 
     # copy files to final destination
     for files in file_list:
         files = basename(str(files)).replace("'", '').replace("]", '').replace("[", '')
         shutil.move(join(args.dir, files), join(args.dir, 'Structural_Connectomes', 'Files', files))
 
+    tracts = glob.glob(join(args.dir,'*tt.gz'))
+    for tract in tracts:
+        tract = basename(str(tract)).replace("'", '').replace("]", '').replace("[", '')
+        shutil.move(join(args.dir,tract),join(args.dir, 'Structural_Connectomes', 'Files','Tracts',tract))
+    
     # move out MPRAGE, FA, MD, and weighted and  file to save as csv and add to 'key'
     outfile = [glob.glob(join(args.dir, 'Structural_Connectomes', 'Files', "*FA.nii.gz")),
                glob.glob(join(args.dir, 'Structural_Connectomes', 'Files', "*MD.nii.gz")),
                glob.glob(join(args.dir, 'Structural_Connectomes', 'Files', 'key1.txt')),
                join(args.dir, 'Structural_Connectomes', 'Files', 'connectome_matrix_weighted.csv'),
-               join(args.dir, 'Structural_Connectomes', 'Files', 'connectome_matrix_binary.csv')
+               join(args.dir, 'Structural_Connectomes', 'Files', 'connectome_matrix_binary.csv'),
+               join(args.dir, 'Structural_Connectomes', 'Files', 'connectome_matrix_normalized_weighted.csv')
                ]
     for files in outfile:
         files = basename(str(files)).replace("'", '').replace("]", '').replace("[", '')
