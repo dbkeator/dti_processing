@@ -155,11 +155,11 @@ def dcm2niix(source_dir,logger,source_file=None):
     # running dcm2niix on whole directory
     if source_file == None:
 
-        cmd = ["docker", "run", "--rm","-v", source_dir + ":/data", DCM2NIIX,"dcm2niix",
+        cmd = [join('/usr','local','bin',"docker"), "run", "--rm","-v", source_dir + ":/data", DCM2NIIX,"dcm2niix",
                "data"]
     # else running it on a file
     else:
-        cmd = ["docker", "run", "--rm", "-v", source_dir + ":/data", "-v",
+        cmd = [join('/usr','local','bin',"docker"), "run", "--rm", "-v", source_dir + ":/data", "-v",
                DCM2NIIX, "dcm2niix", join("data",source_file)]
 
 

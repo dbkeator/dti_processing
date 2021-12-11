@@ -1,2 +1,1 @@
-python connectomes_batch.py -dir $1 
-pause
+/opt/anaconda3/bin/python /Volumes/homes/dbkeator/Consulting/Shankle/DTI_Project/Code/StructuralConnectomes/src/connectomes/batch.py -dir $1 
