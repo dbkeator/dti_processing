@@ -66,6 +66,7 @@ def find_convert_images(source_dir, out_dir, logger,convert=False):
         logger.info("converting dicom images with dcm2niix...")
         # convert all images in source_dir
         dcm2niix(source_dir=source_dir,logger=logger)
+
     else:
         logger.info("skipping dicom conversion...")
 
@@ -164,7 +165,13 @@ def dcm2niix(source_dir,logger,source_file=None):
 
 
     logger.info("command: %s" % subprocess.list2cmdline(cmd))
-    result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        logger.error("running dcm2niix docker command: %s" %subprocess.list2cmdline(cmd))
+        logger.error("system error: %s" %e)
+
+    return result
 
 
 
@@ -192,12 +199,16 @@ def ants_registration(source_dir,out_dir,logger,moving_image,fixed_image,output_
            join("data", moving_image), join("output", output_prefix + "_")]
 
     logger.info("command: %s" % subprocess.list2cmdline(cmd))
-    result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # checks if the output files were created else writes and error to the logger
+        if not isfile(join(out_dir, output_prefix + "_Warped.nii.gz")):
+            logger.error("registration failure for file: %s"
+                % join(source_dir, output_prefix + "_Warped.nii.gz"))
 
-    # checks if the output files were created else writes and error to the logger
-    if not isfile(join(out_dir, output_prefix + "_Warped.nii.gz")):
-        logger.error("registration failure for file: %s"
-            % join(source_dir, output_prefix + "_Warped.nii.gz"))
+    except Exception as e:
+        logger.error("running ANTS registration docker command: %s" % subprocess.list2cmdline(cmd))
+        logger.error("system error: %s" % e)
 
     return result
 
@@ -214,7 +225,7 @@ def dsistudio(source_dir,out_dir,logger,kwargs):
     logger.info("function: dsistudio")
 
     # begin building docker command string
-    cmd = ["docker", "run", "--rm","-v", source_dir + ":/data", "-v",
+    cmd = [join('/usr','local','bin',"docker"), "run", "--rm","-v", source_dir + ":/data", "-v",
            out_dir + ":/output", DSSTUDIO_DOCKER]
 
     # add dsistudio-specific keyword arguments
@@ -223,9 +234,14 @@ def dsistudio(source_dir,out_dir,logger,kwargs):
 
 
     logger.info("command: %s" % subprocess.list2cmdline(cmd))
-    result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        logger.error("running dsistudio docker command: %s" % subprocess.list2cmdline(cmd))
+        logger.error("system error: %s" % e)
 
     return result
+
 
 def fsl(source_dir,out_dir, logger,kwargs,input_file=None,output_file=None):
     '''
@@ -243,7 +259,7 @@ def fsl(source_dir,out_dir, logger,kwargs,input_file=None,output_file=None):
 
 
     # begin building docker command string
-    cmd = ["docker", "run", "--rm", "-v", source_dir + ":/data", "-v",
+    cmd = [join('/usr','local','bin',"docker"), "run", "--rm", "-v", source_dir + ":/data", "-v",
            out_dir + ":/output", FSL]
 
     # add fsl-specific keyword arguments
@@ -255,6 +271,12 @@ def fsl(source_dir,out_dir, logger,kwargs,input_file=None,output_file=None):
     print(source_dir)
     print(out_dir)
     logger.info("command: %s" % subprocess.list2cmdline(cmd))
-    result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    except Exception as e:
+        logger.error("running fsl docker command: %s" % subprocess.list2cmdline(cmd))
+        logger.error("system error: %s" % e)
 
     return result
+

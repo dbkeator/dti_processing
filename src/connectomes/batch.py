@@ -46,7 +46,6 @@ def main(argv):
 
     args = parser.parse_args()
 
-    
 
     #make args.dir absolute path 
    
@@ -69,6 +68,11 @@ def main(argv):
         hdlr.setFormatter(formatter)
         logger.addHandler(hdlr)
         logger.setLevel(logging.INFO)
+
+        if isdir(join(args.dir,"Structural_Connectomes")) and not args.overwrite:
+            logger.error("Structural connectomes folder already exists in %s" %args.dir)
+            logger.error("If you want to overwrite these results add the -overwrite parameter when running this program.")
+            exit(-1)
 
         if args.no_convert:
             # find structural and DTI images
@@ -98,6 +102,7 @@ def main(argv):
 
             exit(-1)
 
+
         # process DTI images
         process_dti(image_dict,logger,args)
 
@@ -122,6 +127,11 @@ def main(argv):
                 logger.addHandler(hdlr)
                 logger.setLevel(logging.INFO)
 
+                if isdir(join(args.dir,dir, "Structural_Connectomes")) and not args.overwrite:
+                    logger.info("Structural connectomes folder already exists in %s" % join(args.dir,dir))
+                    logger.info(
+                        "If you want to overwrite these results add the -overwrite parameter when running this program.")
+                    continue
                 # process patient
 
                 if args.no_convert:

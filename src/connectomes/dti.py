@@ -16,6 +16,8 @@ import nibabel as nib
 import shutil
 from os.path import splitext,basename,join,isfile,isdir
 import io
+import subprocess
+
 
 import time
 
@@ -139,12 +141,12 @@ def process_dti(image_dict, logger, args):
     logger.info("function: process_dti")
 
     # copy DSIParams.txt file to target directory
-    copy(join(os.getcwd(), "DSIParams.txt"),args.dir)
+    copy(join(os.path.dirname(os.path.realpath(__file__)), "DSIParams.txt"),args.dir)
 
     # load parameters
     regparams = load_regparams(args.dir)
 
-    # run bet for eddy correction
+    # run bet (brain extraction) for eddy correction
     logger.info('Running BET for Diffusion Analysis')
     input_file = join("data", basename(image_dict["dti"]["nifti"]))
     output_file = join("output", splitext(basename(image_dict["dti"]["nifti"]))[0] + "_brain.nii.gz")
@@ -188,33 +190,14 @@ def process_dti(image_dict, logger, args):
     df1 = df1.columns.to_frame().T.append(df1, ignore_index=True)
     df1.columns = range(len(df1.columns))
     index = len(df1.columns)
+
+    # error checking for number of directions in DTI scans and cleanup of things if not enough directions
     if len(df1.columns) < DTI_DIR_MIN:
         logger.error('Too Few Directions to Reconstruct Images')
-        # clean up files and things
-        if not isdir(join(args.dir, 'Structural_Connectomes')):
-            os.mkdir(join(args.dir, 'Structural_Connectomes'))
-            os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
-        else:
-            # remove files in directory
-            shutil.rmtree(join(args.dir, 'Structural_Connectomes'))
-            os.mkdir(join(args.dir, 'Structural_Connectomes'))
-            os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
-
-        # move various files to final locations
-        files = glob.glob(join(args.dir, '*_brain*'))
-        for file in files:
-            shutil.move(join(args.dir,file),join(args.dir, 'Structural_Connectomes', 'Files'))
-        # move other files
-        shutil.move(join(args.dir,'acqp_params.txt'),join(args.dir, 'Structural_Connectomes', 'Files'))
-        shutil.move(join(args.dir, 'DSIParams.txt'), join(args.dir, 'Structural_Connectomes', 'Files'))
-        logger.handlers[0].close()
-        shutil.copy(logger.handlers[0].baseFilename,join(args.dir, 'Structural_Connectomes'))
-        os.remove(logger.handlers[0].baseFilename)
-        # create an empty html report
-        create_html(args=args,image_dict=image_dict, error = \
-            'Too few directions to reconstruct connectomes.  Scan has ' + str(len(df1.columns)) +
+        exit_gracefully(args, image_dict, logger, 'Too few directions to reconstruct connectomes.  Scan has ' + str(len(df1.columns)) +
             ' directions but minimum for diffusion processing is ' + str(DTI_DIR_MIN))
         return
+
     indexhere = [1] * index
     indexfinal = str(indexhere)
     indexfinal = indexfinal.replace(',', '').replace('[', '').replace(']', '')
@@ -222,7 +205,7 @@ def process_dti(image_dict, logger, args):
     index.write(indexfinal)
     index.close()
 
-    # example of eddy
+    # Eddy correction
     logger.info('Running FSLs Eddy')
     mask_file = join("data", os.path.splitext(os.path.basename(image_dict["dti"]["nifti"]))[0] + "_brain_mask.nii.gz")
     out_file = join("output", splitext(basename(image_dict["dti"]["nifti"]))[0] +
@@ -238,7 +221,13 @@ def process_dti(image_dict, logger, args):
                 "--index=" + index_file, "--bvecs=" + bvec, "--bvals=" + bval, "--out=" + out_file
     ]
 
-    #fsl(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=eddy_command)
+    fsl(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=eddy_command)
+
+    # error checking eddy...if output file is not created then previous command failed.
+    if not isfile(join(args.dir,"dti_eddycuda_corrected_data.nii.gz")):
+        exit_gracefully(args, image_dict, logger,"error, eddy cuda corrected data not found...likely"
+                                                 "a problem with fsl command: " + subprocess.list2cmdline(eddy_command))
+
 
     # dti fit for FA and MD maps
     logger.info('Running FSLs DTIfit')
@@ -252,6 +241,11 @@ def process_dti(image_dict, logger, args):
     fsl(source_dir=args.dir, out_dir=args.dir, input_file=input_file, logger=logger, output_file=output_file,
         kwargs=dti_fit_command)
 
+    # error checking dtifit...if output file is not created then previous command failed.
+    if len(glob.glob(join(args.dir, "*eddy_c_dtifit*"))) == 0:
+        exit_gracefully(args, image_dict, logger, "error, DTIfit result not found...likely"
+            "a problem with fsl command: " + subprocess.list2cmdline(dti_fit_command))
+
     # make src file for quality
     logger.info('Running Make SRC File')
     source_file = join("data", "dti_eddycuda_corrected_data.nii.gz")
@@ -264,6 +258,11 @@ def process_dti(image_dict, logger, args):
 
     dsistudio(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=dsi_src)
 
+    # error checking src file creation...if output file is not created then previous command failed.
+    if not isfile(join(args.dir, "*src_base*")):
+        exit_gracefully(args, image_dict, logger, "error, SRC file not found...likely"
+            "a problem with dsi_studio command: " + subprocess.list2cmdline(dsi_src))
+
     # check src file for quality
     logger.info('Running Quality Control for SRC')
     source_file = join("data", "src_base.src.gz")
@@ -271,6 +270,11 @@ def process_dti(image_dict, logger, args):
                   "--source=" + source_file]
 
     dsistudio(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=dsiquality)
+
+    # error checking src file QC creation...if output file is not created then previous command failed.
+    if not isfile(join(args.dir, "*src_base.qc*")):
+        exit_gracefully(args, image_dict, logger, "error, SRC file QC result not found...likely"
+            "a problem with dsi_studio command: " + subprocess.list2cmdline(dsiquality))
 
     # reconstruct the images (create fib file; QSDR method=7,GQI method = 4)
     logger.info('Running QSDR Reconstruction')
@@ -289,6 +293,11 @@ def process_dti(image_dict, logger, args):
                 "--other_image=" + other_image]
 
     dsistudio(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=dsirecon)
+
+    # error running QSDR recontruction ...if output file is not created then previous command failed.
+    if not isfile(join(args.dir, '*fib.gz')):
+        exit_gracefully(args, image_dict, logger, "error, QSDR recontruction result not found...likely"
+            "a problem with dsi_studio command: " + subprocess.list2cmdline(dsirecon))
 
     # run robust tractography whole brain
     logger.info('Running Whole Brain Tractography Analysis')
@@ -314,6 +323,11 @@ def process_dti(image_dict, logger, args):
 
     dsistudio(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=dsiruntract)
 
+    # error running whole brain tractography ...if output file is not created then previous command failed.
+    if not isfile(join(args.dir, 'count_connect.trk.gz')):
+        exit_gracefully(args, image_dict, logger, "error, whole-brain tractography result not found...likely"
+            "a problem with dsi_studio command: " + subprocess.list2cmdline(dsiruntract))
+
     # generate connectivity matrix and summary statistics
     logger.info('Running Generate Graph Theory Metrics')
     tract_file = join("data", "count_connect.trk.gz")
@@ -329,6 +343,11 @@ def process_dti(image_dict, logger, args):
                      "--output=" + output_file]
 
     dsistudio(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=dsi_conn_comp)
+
+    # error running whole brain tractography ...if output file is not created then previous command failed.
+    if not isfile(join(args.dir, 'connectivity_countmeasures.txt')):
+        exit_gracefully(args, image_dict, logger, "error, graph theory metrics result not found...likely"
+            "a problem with dsi_studio command: " + subprocess.list2cmdline(dsi_conn_comp))
 
     # Generate images of tractography
     logger.info('Creating Tractography Images')
@@ -667,28 +686,68 @@ def process_dti(image_dict, logger, args):
                ]
     for files in outfile:
         files = basename(str(files)).replace("'", '').replace("]", '').replace("[", '')
-        shutil.move(join(args.dir, 'Structural_Connectomes', 'Files', files),
+        try:
+            shutil.move(join(args.dir, 'Structural_Connectomes', 'Files', files),
                     join(args.dir, 'Structural_Connectomes', files))
-    # copy key file to Files directory
-    copy(str(join(os.path.abspath(os.getcwd()), 'DSIParams.txt')), join(args.dir, 'Structural_Connectomes', 'Files'))
+        except Exception as e:
+            logger.error("Exception encountered during move operation: %s" %e)
 
-    # Rename some files
-    FA = glob.glob(join(args.dir, 'Structural_Connectomes', "*FA.nii.gz"))
-    FA = str(FA).replace("'", '').replace("]", '').replace("[", '')
-    MD = glob.glob(join(args.dir, 'Structural_Connectomes', "*MD.nii.gz"))
-    MD = str(MD).replace("'", '').replace("]", '').replace("[", '')
-    os.rename(FA,
-              join(args.dir, 'Structural_Connectomes', "FA.nii.gz"))
-    os.rename(MD,
-              join(args.dir, 'Structural_Connectomes', "MD.nii.gz"))
-    os.rename(join(args.dir, 'Structural_Connectomes', "key1.txt"),
-              join(args.dir, 'Structural_Connectomes', 'key.txt'))
-    os.rename(join(args.dir, 'Structural_Connectomes', 'Files', "key2.txt"),
-              join(args.dir, 'Structural_Connectomes', 'Files', 'key.txt'))
+    # copy key file to Files directory
+    copy(str(join(os.path.dirname(os.path.realpath(__file__)), 'DSIParams.txt')), join(args.dir, 'Structural_Connectomes', 'Files'))
+
+    try:
+        # Rename some files
+        FA = glob.glob(join(args.dir, 'Structural_Connectomes', "*FA.nii.gz"))
+        FA = str(FA).replace("'", '').replace("]", '').replace("[", '')
+        MD = glob.glob(join(args.dir, 'Structural_Connectomes', "*MD.nii.gz"))
+        MD = str(MD).replace("'", '').replace("]", '').replace("[", '')
+
+        os.rename(FA,
+                  join(args.dir, 'Structural_Connectomes', "FA.nii.gz"))
+        os.rename(MD,
+                  join(args.dir, 'Structural_Connectomes', "MD.nii.gz"))
+        os.rename(join(args.dir, 'Structural_Connectomes', "key1.txt"),
+                  join(args.dir, 'Structural_Connectomes', 'key.txt'))
+        os.rename(join(args.dir, 'Structural_Connectomes', 'Files', "key2.txt"),
+                  join(args.dir, 'Structural_Connectomes', 'Files', 'key.txt'))
+    except Exception as e:
+        logger.error("Exception encountered during rename operation: %s" % e)
 
     # create html report
     create_html(args, image_dict)
 
+def exit_gracefully(args,image_dict,logger,message):
+    '''
+    This function will move various files to their final destinations even if things didn't run all the way through
+    and will create a skeleton report.html file with message about what went wrong.
+    :message: error message to include in report.html file
+    :return: None
+    '''
+
+    # clean up files and things
+    if not isdir(join(args.dir, 'Structural_Connectomes')):
+        os.mkdir(join(args.dir, 'Structural_Connectomes'))
+        os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
+    else:
+        # remove files in directory
+        shutil.rmtree(join(args.dir, 'Structural_Connectomes'))
+        os.mkdir(join(args.dir, 'Structural_Connectomes'))
+        os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
+
+    # move various files to final locations
+    files = glob.glob(join(args.dir, '*_brain*')) + glob.glob(join(args.dir, '*.png')) + \
+        glob.glob(join(args.dir, '*.txt')) + glob.glob(join(args.dir, '*data_ep2d_diff*')) + \
+        glob.glob(join(args.dir, '*dti_eddycuda*'))
+
+    for file in files:
+        shutil.move(join(args.dir, file), join(args.dir, 'Structural_Connectomes', 'Files',file))
+
+    logger.handlers[0].close()
+    shutil.copy(logger.handlers[0].baseFilename, join(args.dir, 'Structural_Connectomes'))
+    os.remove(logger.handlers[0].baseFilename)
+    # create an empty html report
+    create_html(args=args, image_dict=image_dict, error=message)
+    return
 
 
 def create_html(args,image_dict,error=None):
@@ -743,17 +802,16 @@ def create_html(args,image_dict,error=None):
         return
 
 
-    QC = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'QC_Table.jpg')
-    Motion = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'motioncombined.jpg')
-    Tracts = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'tractography.jpg')
-    Conn = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'connectivity_matrix.jpg')
-    Bin = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'connectome_matrix_binary.csv')
-    Weight = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'connectome_matrix_weighted.csv')
-    FAcol = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'mosaic_FA.png')
+    QC = join('Files', 'QC_Table.jpg')
+    Motion = join('Files', 'motioncombined.jpg')
+    Tracts = join('Files', 'tractography.jpg')
+    Conn = join('Files', 'connectivity_matrix.jpg')
+    Bin = 'connectome_matrix_binary.csv'
+    Weight = 'connectome_matrix_weighted.csv'
+    FAcol = join('Files', 'mosaic_FA.png')
     GraphTheoryMetrics = str(
         glob.glob(join(args.dir, 'Structural_Connectomes', 'Files', '*count.end.network_measures.txt'))).replace("'",
-                                                                                                                 '').replace(
-        "]", '').replace("[", '')
+                        '').replace("]", '').replace("[", '')
     print(GraphTheoryMetrics)
     all_graph1 = pd.read_csv(
         str(glob.glob(join(args.dir, 'Structural_Connectomes', 'Files', '*count.end.network_measures.txt'))).replace(
@@ -764,8 +822,8 @@ def create_html(args,image_dict,error=None):
     all_graph1_T = all_graph1_T[1:]
     all_graph1_T.columns = new_header
     all_graph1_T.to_csv(join(args.dir, 'Structural_Connectomes', 'Graph_Theoretic_Measures.csv'), index=None)
-    GraphSimp = join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Graph_Theoretic_Measures.csv')
-    DSIparam = str(join(os.path.abspath(args.dir), 'Structural_Connectomes', 'Files', 'DSIParams.txt'))
+    GraphSimp = 'Graph_Theoretic_Measures.csv'
+    DSIparam = join('Files', 'DSIParams.txt')
 
     Atlas = str(glob.glob(join(args.dir, 'Structural_Connectomes', 'Files', '*count.end.network_measures.txt')))
     start = Atlas.find("connectivity_countmeasures.txt.") + len("connectivity_countmeasures.txt.")
