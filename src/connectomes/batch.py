@@ -40,9 +40,9 @@ def main(argv):
     parser.add_argument('-dir', dest='dir', required=True, help="Directory to process images from")
     parser.add_argument('-overwrite', action='store_true', required=False,
                         help="If flag set, everything will be re-run")
-    parser.add_argument('-no_convert', action='store_true', required=False,
-                       help="If flag set, no dicom2nii conversion will be done and it will be assumed the nifti"
-                            "files of the DICOM series are stored in -dir or 1 level down from location of -dir.")
+    #parser.add_argument('-no_convert', action='store_true', required=False,
+    #                   help="If flag set, no dicom2nii conversion will be done and it will be assumed the nifti"
+    #                        "files of the DICOM series are stored in -dir or 1 level down from location of -dir.")
 
     args = parser.parse_args()
 
@@ -58,7 +58,7 @@ def main(argv):
     files = os.listdir(args.dir)
 
     # if file DICOMDIR is in listing then args.dir is a directory containing DICOM images for a patient
-    if ('DICOMDIR' in files) or ('KITSELM' in files):
+    if ('DICOMDIR' in files) or ('KITSELM' in files) or (len(glob2.glob(join(args.dir,"*.nii*"))) != 0):
         # open log file
         timestr = time.strftime("%Y%m%d-%H%M%S")
         logger = logging.getLogger(join(args.dir, 'connectomes_batch'))
@@ -74,12 +74,8 @@ def main(argv):
             logger.error("If you want to overwrite these results add the -overwrite parameter when running this program.")
             exit(-1)
 
-        if args.no_convert:
-            # find structural and DTI images
-            image_dict = find_convert_images(source_dir=args.dir,out_dir=args.dir,logger=logger,convert=False)
-        else:
-            # find structural and DTI images
-            image_dict = find_convert_images(source_dir=args.dir, out_dir=args.dir, logger=logger, convert=True)
+        # find structural and DTI images
+        image_dict = find_convert_images(source_dir=args.dir, out_dir=args.dir, logger=logger)
 
         # check if image_dict does not contain valid images
         if image_dict == -1:
@@ -134,14 +130,10 @@ def main(argv):
                     continue
                 # process patient
 
-                if args.no_convert:
-                    # find structural and DTI images
-                    image_dict = find_convert_images(source_dir=join(args.dir,dir), out_dir=join(args.dir,dir),
-                                                     logger=logger, convert=False)
-                else:
-                    # find structural and DTI images
-                    image_dict = find_convert_images(source_dir=join(args.dir, dir), out_dir=join(args.dir, dir),
-                                                     logger=logger, convert=True)
+
+                # find structural and DTI images
+                image_dict = find_convert_images(source_dir=join(args.dir, dir), out_dir=join(args.dir, dir),
+                                                     logger=logger)
 
                 # check if image_dict does not contain valid images
                 if image_dict == -1:

@@ -42,7 +42,7 @@ else:
     print("ERROR: Unsupported Platform: %s" % platform.system())
 
 
-def find_convert_images(source_dir, out_dir, logger,convert=False):
+def find_convert_images(source_dir, out_dir, logger):
     '''
     This function will convert all the DICOM images in source_dir and store them in out_dir. It will
     then figure out which images are the best structural scan and DTI scan with the most directions
@@ -50,7 +50,6 @@ def find_convert_images(source_dir, out_dir, logger,convert=False):
     :param source_dir: directory containing DICOM images or sub-directories with DICOM images
     :param out_dir: directory to store NifTI images
     :param logger: log file
-    :param convert: optional parameter which will do dcm2niix conversion if True
     :return: dictionary: dict['structural']['nifti'],dict['structural']['json'], dict['dti']['nifti'],
         dict['dti']['json'], dict['dti']['bval'], dict['dti']['bvec']
     '''
@@ -62,13 +61,9 @@ def find_convert_images(source_dir, out_dir, logger,convert=False):
 
     logger.info("function: find_convert_images")
 
-    if convert:
-        logger.info("converting dicom images with dcm2niix...")
-        # convert all images in source_dir
-        dcm2niix(source_dir=source_dir,logger=logger)
-
-    else:
-        logger.info("skipping dicom conversion...")
+    logger.info("trying to convert dicom images with dcm2niix...")
+    # convert all images in source_dir
+    dcm2niix(source_dir=source_dir,logger=logger)
 
     # get list of json, nifti, and bval/bvec options
     logger.info("getting list of nifti, bval, bvec, and json files...")

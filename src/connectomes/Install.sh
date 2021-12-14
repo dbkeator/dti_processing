@@ -21,3 +21,5 @@ export PATH=/Applications/StructuralConnectomes:$PATH
 
 # make entry script executable
 chmod 755 /Applications/StructuralConnectomes/StructuralConnectomes.sh
+
+echo "StructuralConnectomes successfully installed!"

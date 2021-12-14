@@ -296,7 +296,7 @@ def process_dti(image_dict, logger, args):
 
     # error running QSDR recontruction ...if output file is not created then previous command failed.
     if not isfile(join(args.dir, '*fib.gz')):
-        exit_gracefully(args, image_dict, logger, "error, QSDR recontruction result not found...likely"
+        exit_gracefully(args, image_dict, logger, "error, QSDR recontruction result not found...likely "
             "a problem with dsi_studio command: " + subprocess.list2cmdline(dsirecon))
 
     # run robust tractography whole brain
@@ -408,9 +408,7 @@ def process_dti(image_dict, logger, args):
     NIIname.close()
     ###########################Plot and Save Connectivity Matrix######
     logger.info('Generating Connectivity Matrix')
-    conn = pd.read_csv(
-        (str(glob.glob(join(args.dir, '*connectogram.txt'))).replace("'", '').replace("]", '').replace("[", '')),
-        sep="\t")
+    conn = pd.read_csv((str(glob.glob(join(args.dir, '*connectogram.txt'))).replace("'", '').replace("]", '').replace("[", '')),sep="\t")
     conn = conn.drop(['data'], axis=1)
     conn.columns = conn.iloc[0]
     conn = conn.set_index('data')

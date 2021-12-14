@@ -2,4 +2,5 @@
 # get path to python
 DIR=$(which python)
 DIRNAME=$(dirname ${DIR})
-${DIRNAME}/python /Applications/StructuralConnectomes/batch.py -dir $1 
+INSTALL_DIR=/Applications/StructuralConnectomes
+${DIRNAME}/python ${INSTALL_DIR}/batch.py -dir $1 
