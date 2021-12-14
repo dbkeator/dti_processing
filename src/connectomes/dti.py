@@ -30,8 +30,8 @@ except ImportError:
 try:
     from dipy.viz import window, actor, ui
 except ImportError:
-    print("trying to install required module: dipy.viz")
-    system("python -m pip install --upgrade pip dipy.viz")
+    print("trying to install required module: dipy")
+    system("python -m pip install --upgrade pip dipy")
     from dipy.viz import window, actor, ui
 try:
     from dipy.io import read_bvals_bvecs

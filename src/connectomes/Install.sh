@@ -20,4 +20,4 @@ osascript -e 'tell application "Finder"' -e 'make new alias to file (posix file 
 export PATH=/Applications/StructuralConnectomes:$PATH
 
 # make entry script executable
-chmod 755 /Appliations/StructuralConnectomes/StructuralConnectomes.sh
+chmod 755 /Applications/StructuralConnectomes/StructuralConnectomes.sh
