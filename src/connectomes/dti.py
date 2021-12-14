@@ -664,14 +664,17 @@ def process_dti(image_dict, logger, args):
     if not isdir (join(args.dir, 'Structural_Connectomes')):
         os.mkdir(join(args.dir, 'Structural_Connectomes'))
         os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
-        os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files','Tracts'))
 
     # copy files to final destination
     for files in file_list:
         files = basename(str(files)).replace("'", '').replace("]", '').replace("[", '')
         shutil.move(join(args.dir, files), join(args.dir, 'Structural_Connectomes', 'Files', files))
 
+    # added for future support of tractography visualizations...not currently used.
     tracts = glob.glob(join(args.dir,'*tt.gz'))
+    if len(tracts) != 0:
+        if not isdir(join(args.dir, 'Structural_Connectomes', 'Files','Tracts')):
+            os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files','Tracts'))
     for tract in tracts:
         tract = basename(str(tract)).replace("'", '').replace("]", '').replace("[", '')
         shutil.move(join(args.dir,tract),join(args.dir, 'Structural_Connectomes', 'Files','Tracts',tract))

@@ -1,3 +1,14 @@
+The python wrapping scripts provided here use Docker containers maintained and supplied by others via Docker Hub. It
+uses Docker containers for two neuroimaging-related software products written by others.  All use of this software must 
+conform to the licenses for the neuroimaging-related software products used within.  The licenses for both FSL and DSI 
+Studio are provided below followed by the license for the python components written to make the processing of neuroimaging 
+data eaiser when using FSL and DSI Studio in a workflow for producing DWI-based structural connectomes.
+
+FSL License: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Licence
+DSI Studio License: http://dsi-studio.labsolver.org/dsi-studio-download
+
+
+Python Code License:
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -185,8 +196,6 @@
       file or class name and description of purpose be included on the
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
-
-   Copyright [yyyy] [name of copyright owner]
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
