@@ -331,7 +331,7 @@ def process_dti(image_dict, logger, args):
     # generate connectivity matrix and summary statistics
     logger.info('Running Generate Graph Theory Metrics')
     tract_file = join("data", "count_connect.trk.gz")
-    atlas = join("opt", "dsi-studio", "dsi_studio_64", "atlas", "ICBM152", "AAL2.nii.gz")
+    atlas = join("opt", "dsi-studio", "atlas", "ICBM152", "AAL2.nii.gz")
     output_file = join("output", "connectivity_countmeasures.txt")
     dsi_conn_comp = ["dsi_studio", "--action=ana",
                      "--source=" + source_file,
