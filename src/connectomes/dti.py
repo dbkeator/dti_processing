@@ -668,7 +668,12 @@ def process_dti(image_dict, logger, args):
         files = basename(str(files)).replace("'", '').replace("]", '').replace("[", '')
         shutil.move(join(args.dir, files), join(args.dir, 'Structural_Connectomes', 'Files', files))
 
-    # added for future support of tractography visualizations...not currently used.
+    # copy T1-weighted image to output directory
+    shutil.copyfile(src=join(args.dir, basename(image_dict["structural"]["nifti"])),
+                    dest=join(args.dir, 'Structural_Connectomes',"T1.nii.gz")
+)
+
+    # added for support of tractography visualizations....
     tracts = glob.glob(join(args.dir,'*tt.gz'))
     if len(tracts) != 0:
         if not isdir(join(args.dir, 'Structural_Connectomes', 'Files','Tracts')):

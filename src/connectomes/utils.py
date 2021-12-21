@@ -16,8 +16,8 @@ except ImportError:
     import nibabel as nib
 
 if platform.system() == 'Darwin':
-    #INSTALL_DIR = "/Applications/connectomes"
-    INSTALL_DIR = os.getcwd()
+    INSTALL_DIR = "/Applications/StructuralConnectomes"
+    #INSTALL_DIR = os.getcwd()
     LOG_DIR = join(INSTALL_DIR, "temp")
     ANTS_DOCKER = join("dbkeator/roiextract:latest")
     SCRIPTS_DIR = join(INSTALL_DIR,"scripts")
@@ -28,7 +28,7 @@ if platform.system() == 'Darwin':
     DCM2NIIX = "xnat/dcm2niix"
 
 elif platform.system() == 'Linux':
-    INSTALL_DIR = "/usr/local/bin/connectomes"
+    INSTALL_DIR = "/usr/local/bin/StructuralConnectomes"
     LOG_DIR = join(INSTALL_DIR, "temp")
     ANTS_DOCKER = join("dbkeator/roiextract:latest")
     SCRIPTS_DIR = join(INSTALL_DIR,"scripts")
@@ -187,7 +187,7 @@ def ants_registration(source_dir,out_dir,logger,moving_image,fixed_image,output_
     logger.info("function: ants_registration")
 
 
-    cmd = ["docker", "run", "--rm","-v", source_dir + ":/data", "-v",
+    cmd = [join('/usr','local','bin',"docker"), "run", "--rm","-v", source_dir + ":/data", "-v",
            SCRIPTS_DIR + ":/scripts", "-v",
            out_dir + ":/output", ANTS_DOCKER, "sh", join("scripts", ANTS_REG),
            join("data", fixed_image),
