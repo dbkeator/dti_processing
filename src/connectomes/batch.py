@@ -158,6 +158,10 @@ def main(argv):
                 # process DTI images
                 process_dti(image_dict, logger, args_copy)
 
-    
+    handler = logger.handlers[0]
+    logger_filename = handler.baseFilename
+    shutil.move(logger_filename, join(args.dir, 'Structural_Connectomes'))
+
+
 if __name__ == "__main__":
     main(sys.argv[1:])

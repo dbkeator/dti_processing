@@ -221,7 +221,7 @@ def process_dti(image_dict, logger, args):
                 "--index=" + index_file, "--bvecs=" + bvec, "--bvals=" + bval, "--out=" + out_file
     ]
 
-    #fsl(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=eddy_command)
+    fsl(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=eddy_command)
 
     # error checking eddy...if output file is not created then previous command failed.
     if not isfile(join(args.dir,"dti_eddycuda_corrected_data.nii.gz")):
@@ -259,7 +259,7 @@ def process_dti(image_dict, logger, args):
     dsistudio(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=dsi_src)
 
     # error checking src file creation...if output file is not created then previous command failed.
-    if not isfile(join(args.dir, "*src_base*")):
+    if not isfile(join(args.dir, "src_base.src.gz")):
         exit_gracefully(args, image_dict, logger, "error, SRC file not found...likely"
             "a problem with dsi_studio command: " + subprocess.list2cmdline(dsi_src))
 
@@ -272,7 +272,7 @@ def process_dti(image_dict, logger, args):
     dsistudio(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=dsiquality)
 
     # error checking src file QC creation...if output file is not created then previous command failed.
-    if not isfile(join(args.dir, "*src_base.qc*")):
+    if not isfile(join(args.dir, "src_base.qc.txt")):
         exit_gracefully(args, image_dict, logger, "error, SRC file QC result not found...likely"
             "a problem with dsi_studio command: " + subprocess.list2cmdline(dsiquality))
 
@@ -295,7 +295,8 @@ def process_dti(image_dict, logger, args):
     dsistudio(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=dsirecon)
 
     # error running QSDR recontruction ...if output file is not created then previous command failed.
-    if not isfile(join(args.dir, '*fib.gz')):
+    fib_files = glob.glob(join(args.dir, 'src_base.src*.fib.gz'))
+    if not (len(fib_files) > 0):
         exit_gracefully(args, image_dict, logger, "error, QSDR recontruction result not found...likely "
             "a problem with dsi_studio command: " + subprocess.list2cmdline(dsirecon))
 
@@ -665,12 +666,17 @@ def process_dti(image_dict, logger, args):
     # copy files to final destination
     for files in file_list:
         files = basename(str(files)).replace("'", '').replace("]", '').replace("[", '')
-        shutil.move(join(args.dir, files), join(args.dir, 'Structural_Connectomes', 'Files', files))
+        # move logger later
+        handler = logger.handlers[0]
+        logger_filename = handler.baseFilename
+        if files == logger_filename:
+            continue
+        else:
+            shutil.move(join(args.dir, files), join(args.dir, 'Structural_Connectomes', 'Files', files))
 
     # copy T1-weighted image to output directory
     shutil.copyfile(src=join(args.dir, basename(image_dict["structural"]["nifti"])),
-                    dest=join(args.dir, 'Structural_Connectomes',"T1.nii.gz")
-)
+                    dest=join(args.dir, 'Structural_Connectomes',"T1.nii.gz"))
 
     # added for support of tractography visualizations....
     tracts = glob.glob(join(args.dir,'*tt.gz'))
@@ -718,6 +724,7 @@ def process_dti(image_dict, logger, args):
     except Exception as e:
         logger.error("Exception encountered during rename operation: %s" % e)
 
+
     # create html report
     create_html(args, image_dict)
 
@@ -745,14 +752,20 @@ def exit_gracefully(args,image_dict,logger,message):
         glob.glob(join(args.dir, '*dti_eddycuda*'))
 
     for file in files:
-        shutil.move(join(args.dir, file), join(args.dir, 'Structural_Connectomes', 'Files',file))
+        # move logger later
+        handler = logger.handlers[0]
+        logger_filename = handler.baseFilename
+        if file == logger_filename:
+            continue
+        else:
+            shutil.move(join(args.dir, file), join(args.dir, 'Structural_Connectomes', 'Files',file))
 
     logger.handlers[0].close()
     shutil.copy(logger.handlers[0].baseFilename, join(args.dir, 'Structural_Connectomes'))
     os.remove(logger.handlers[0].baseFilename)
     # create an empty html report
     create_html(args=args, image_dict=image_dict, error=message)
-    return
+    exit(-1)
 
 
 def create_html(args,image_dict,error=None):
