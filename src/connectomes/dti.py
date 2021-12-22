@@ -221,7 +221,7 @@ def process_dti(image_dict, logger, args):
                 "--index=" + index_file, "--bvecs=" + bvec, "--bvals=" + bval, "--out=" + out_file
     ]
 
-    fsl(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=eddy_command)
+    #fsl(source_dir=args.dir, out_dir=args.dir, logger=logger, kwargs=eddy_command)
 
     # error checking eddy...if output file is not created then previous command failed.
     if not isfile(join(args.dir,"dti_eddycuda_corrected_data.nii.gz")):
@@ -435,8 +435,7 @@ def process_dti(image_dict, logger, args):
     logger.info('Generating Efficiency Files')
 
     Eff = pd.read_csv((str(glob.glob(join(args.dir, '*count.end.network_measures.txt'))).replace("'", '').replace("]",
-                                                                                                                  '').replace(
-        "[", '')), sep=" ", header=None)
+                '').replace("[", '')), sep=" ", header=None)
     Ecc = str(Eff.iloc[9:11])
     Ecc = str(Ecc)
     Ecc = Ecc.replace('\\t', ' ').replace('9', '').replace('0', '').replace('1', '')
