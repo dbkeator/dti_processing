@@ -8,7 +8,7 @@ elif [[ ! -d $install_dir ]]; then
 fi
 
 # copy source files into install_dir
-cp ${SCRIPT_DIR}/dti.py ${SCRIPT_DIR}/__version__.py ${SCRIPT_DIR}/batch.py  ${SCRIPT_DIR}/utils.py ${SCRIPT_DIR}/StructuralConnectomes.sh ${SCRIPT_DIR}/DSIParams.txt  ${SCRIPT_DIR}/Install.sh ${SCRIPT_DIR}/Subtract_FA.sh ${SCRIPT_DIR}/subtract_images.py $install_dir
+cp ${SCRIPT_DIR}/dti.py ${SCRIPT_DIR}/__version__.py ${SCRIPT_DIR}/batch.py  ${SCRIPT_DIR}/utils.py ${SCRIPT_DIR}/StructuralConnectomes.sh ${SCRIPT_DIR}/DSIParams.txt  ${SCRIPT_DIR}/Install.sh ${SCRIPT_DIR}/Subtract_FA.sh ${SCRIPT_DIR}/subtract_images.py ${SCRIPT_DIR}/Install.docx ${SCRIPT_DIR}/Tractography_Visualization_Instructions.docx $install_dir
 
 # copy scripts directory to install_dir
 cp -R ${SCRIPT_DIR}/Install.app ${SCRIPT_DIR}/StructuralConnectomes.app ${SCRIPT_DIR}/scripts ${SCRIPT_DIR}/Subtract_FA.app  $install_dir
