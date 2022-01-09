@@ -70,18 +70,29 @@ def main(argv):
             logger.error("If you want to overwrite these results add the -overwrite parameter when running this program.")
             exit(-1)
 
+        elif isdir(join(args.dir, "Structural_Connectomes")) and args.overwrite:
+            logger.info("Structural connectomes folder already exists in %s" % args.dir)
+            logger.info("argument -overwrite given so folder is being removed and overwritten....")
+            # remove files in directory
+            shutil.rmtree(join(args.dir, 'Structural_Connectomes'), ignore_errors=True)
+
         # find structural and DTI images
         image_dict = find_convert_images(source_dir=args.dir, out_dir=args.dir, logger=logger)
 
         # check if image_dict does not contain valid images
-        if image_dict == -1:
+        if (len(image_dict['dti'])==0) or (len(image_dict['structural'])==0):
             # clean up files and things
             if not isdir(join(args.dir, 'Structural_Connectomes')):
                 os.mkdir(join(args.dir, 'Structural_Connectomes'))
                 os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
             else:
-                # remove files in directory
-                shutil.rmtree(join(args.dir, 'Structural_Connectomes'))
+                # check if 'Structural_Connectomes' directory or file exists, if so, delete it
+                if isdir(join(args.dir, 'Structural_Connectomes')):
+                    # remove files in directory
+                    shutil.rmtree(join(args.dir, 'Structural_Connectomes'), ignore_errors=True)
+                # there is some bug where sometimes this is a file not a directory
+                elif isfile(join(args.dir, 'Structural_Connectomes')):
+                    os.remove(join(args.dir, 'Structural_Connectomes'))
                 os.mkdir(join(args.dir, 'Structural_Connectomes'))
                 os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
 
@@ -106,7 +117,7 @@ def main(argv):
 
         for dir in directories:
             # ignore MAC directories we don't care about
-            if '.DS_STORE' in dir:
+            if ('.DS_STORE' in dir) or ('Structural_Connectomes' in dir):
                 continue
             else:
                 # open log file
@@ -124,6 +135,12 @@ def main(argv):
                     logger.info(
                         "If you want to overwrite these results add the -overwrite parameter when running this program.")
                     continue
+                elif isdir(join(args.dir,dir, "Structural_Connectomes")) and args.overwrite:
+                    logger.info("Structural connectomes folder already exists in %s" % join(args.dir,dir))
+                    logger.info("argument -overwrite given so folder is being removed and overwritten....")
+                    # remove files in directory
+                    shutil.rmtree(join(args.dir, dir, 'Structural_Connectomes'), ignore_errors=True)
+
                 # process patient
 
 
@@ -132,21 +149,27 @@ def main(argv):
                                                      logger=logger)
 
                 # check if image_dict does not contain valid images
-                if image_dict == -1:
+                if (len(image_dict['dti'])==0) or (len(image_dict['structural'])==0):
                     # clean up files and things
                     if not isdir(join(args.dir, 'Structural_Connectomes')):
                         os.mkdir(join(args.dir, 'Structural_Connectomes'))
                         os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
                     else:
-                        # remove files in directory
-                        shutil.rmtree(join(args.dir, 'Structural_Connectomes'))
-                        os.mkdir(join(args.dir, 'Structural_Connectomes'))
-                        os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
+                        # check if 'Structural_Connectomes' directory or file exists, if so, delete it
+                        if isdir(join(args.dir, dir, 'Structural_Connectomes')):
+                            # remove files in directory
+                            shutil.rmtree(join(args.dir, dir, 'Structural_Connectomes'), ignore_errors=True)
+                        # there is some bug where sometimes this is a file not a directory
+                        elif isfile(join(args.dir, dir, 'Structural_Connectomes')):
+                            os.remove(join(args.dir, dir, 'Structural_Connectomes'))
+                        os.mkdir(join(args.dir,dir, 'Structural_Connectomes'))
+                        os.mkdir(join(args.dir,dir, 'Structural_Connectomes', 'Files'))
 
                     logger.handlers[0].close()
-                    shutil.copy(logger.handlers[0].baseFilename, join(args.dir, 'Structural_Connectomes'))
+                    shutil.copy(logger.handlers[0].baseFilename, join(args.dir,dir, 'Structural_Connectomes'))
                     os.remove(logger.handlers[0].baseFilename)
                     # create an empty html report
+                    args.dir = join(args.dir, dir)
                     create_html(args=args, image_dict=image_dict, error= \
                         'Structural and/or DTI data not found after DICOM conversion.')
 

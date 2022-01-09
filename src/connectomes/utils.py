@@ -130,7 +130,7 @@ def find_convert_images(source_dir, out_dir, logger):
     if (len(output_dict['dti'])==0) or (len(output_dict['structural'])==0):
         logger.error("No DTI or structural scans found in: %s" %source_dir)
         logger.error("Unable to continue...")
-        return -1
+        return output_dict
     else:
         return output_dict
 

@@ -10,7 +10,13 @@ import numpy as np
 import json
 import datetime
 import glob
-import seaborn as sns
+
+try:
+    import seaborn as sns
+except ImportError:
+    print("trying to install required module: seaborn")
+    system("python -m pip install --upgrade pip seaborn")
+
 from shutil import copy
 import nibabel as nib
 import shutil
@@ -68,8 +74,12 @@ except ImportError:
     print("trying to install required module: PIL")
     system("python -m pip install --upgrade pip PIL")
     from PIL import Image
-
-from pandas.plotting import table
+try:
+    from pandas.plotting import table
+except ImportError:
+    print("trying to install required module: pandas")
+    system("python -m pip install --upgrade pip pandas")
+    from pandas.plotting import table
 
 
 
@@ -782,14 +792,28 @@ def create_html(args,image_dict,error=None):
     patient_file = args.dir
     Date = str(datetime.datetime.now())
     # checking keys just in case we've reached this in error
-    if 'structural' in image_dict.keys():
-        ScanTime =  str(time.ctime(os.path.getctime(join(args.dir, basename(image_dict["structural"]["nifti"])))))
-        MPRAGE = str(basename(image_dict["structural"]["nifti"]))
+    if ('structural' in image_dict.keys()):
+        if ('nifti' in image_dict["structural"].keys()) and len(image_dict["structural"]["nifti"] != 0):
+            ScanTime =  str(time.ctime(os.path.getctime(join(args.dir, basename(image_dict["structural"]["nifti"])))))
+            MPRAGE = str(basename(image_dict["structural"]["nifti"]))
+        else:
+            ScanTime = ""
+            MPRAGE = ""
 
     if 'dti' in image_dict.keys():
-        Diff = str(basename(image_dict["dti"]["nifti"]))
-        Bval = str(basename(image_dict["dti"]["bval"]))
-        Bvec = str(basename(image_dict["dti"]["bvec"]))
+        if ('nifti' in image_dict["dti"].keys()) and (len(image_dict["dti"]["nifti"]) != 0):
+            Diff = str(basename(image_dict["dti"]["nifti"]))
+        else:
+            Diff = ""
+        if ('bval' in image_dict["dti"].keys()) and (len(image_dict["dti"]["bval"]) != 0):
+            Bval = str(basename(image_dict["dti"]["bval"]))
+        else:
+            Bval = ""
+        if ('bvec' in image_dict["dti"].keys()) and (len(image_dict["dti"]["bvec"]) != 0):
+            Bvec = str(basename(image_dict["dti"]["bvec"]))
+        else:
+            Bvec = ""
+
 
     SoftwareVersion = 'Software Version: ' + VERSION
 
@@ -925,14 +949,4 @@ def create_html(args,image_dict,error=None):
                             <a href="{GraphSimp}">Graph Radius Weighted:<a> {rad_w} <br>
                             <a href="{GraphSimp}">Assortativity Coefficient Binary:<a> {asso_b} <br>
                             <a href="{GraphSimp}">Assortativity Coefficient Weighted:<a> {asso_w} <br>
-                            <h2>Additional Files</h2><br>
-                            <a href="{GraphTheoryMetrics}">All Graph Theory Metrics<a> <br>
-                            <a href="{Bin}">Binary Adjacency Matrix<a> <br>
-                            <a href="{DSIparam}">DSI Params File<a><br>
-                            <a href="{Weight}">Weighted Adjacency Matrix</a>
-                        </body>
-                    </html>
-                    '''
-    # 3. Write the html string as an HTML file
-    with open(join(args.dir, 'Structural_Connectomes', 'report.html'), 'w') as f:
-        f.write(html)
+                            <h2>Ad
