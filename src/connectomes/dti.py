@@ -349,8 +349,8 @@ def process_dti(image_dict, logger, args):
 
     # error running whole brain tractography ...if output file is not created then previous command failed.
     if not isfile(join(args.dir, 'count_connect.trk.gz')):
-        exit_gracefully(args, image_dict, logger, "error, whole-brain tractography result not found...likely"
-            "a problem with dsi_studio command: " + subprocess.list2cmdline(dsiruntract))
+        exit_gracefully(args, image_dict, logger, "error, whole-brain tractography result not found: " + join(args.dir, 'count_connect.trk.gz') + \
+            " likely a problem with dsi_studio command: " + subprocess.list2cmdline(dsiruntract))
 
     # generate connectivity matrix and summary statistics
     logger.info('Running Generate Graph Theory Metrics')
@@ -806,7 +806,7 @@ def create_html(args,image_dict,error=None):
     Date = str(datetime.datetime.now())
     # checking keys just in case we've reached this in error
     if ('structural' in image_dict.keys()):
-        if ('nifti' in image_dict["structural"].keys()) and len(image_dict["structural"]["nifti"] != 0):
+        if ('nifti' in image_dict["structural"].keys()) and (len(image_dict["structural"]["nifti"]) != 0):
             ScanTime =  str(time.ctime(os.path.getctime(join(args.dir, basename(image_dict["structural"]["nifti"])))))
             MPRAGE = str(basename(image_dict["structural"]["nifti"]))
         else:

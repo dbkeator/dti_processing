@@ -183,10 +183,10 @@ def main(argv):
 
     handler = logger.handlers[0]
     logger_filename = handler.baseFilename
-    try:
-        shutil.move(logger_filename, join(args.dir, 'Structural_Connectomes'))
-    except:
-        print("connectome processing done: %s" %args.dir)
+    #try:
+    #    shutil.move(logger_filename, join(args.dir, 'Structural_Connectomes'))
+    #except:
+    #    print("connectome processing done: %s" %args.dir)
 
 
 if __name__ == "__main__":
