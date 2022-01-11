@@ -1,6 +1,10 @@
 # check if destination directory exists and if not make it
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-install_dir="/Applications/StructuralConnectomes"
+user=`whoami`
+install_dir="/Users/$user/StructuralConnectomes"
+structural_connectomes_app="$install_dir/StructuralConnectomes.app"
+fa_app="$install_dir/Subtract_FA.app"
+
 if [[ ! -e $install_dir ]]; then
     mkdir $install_dir
 elif [[ ! -d $install_dir ]]; then
@@ -14,17 +18,20 @@ cp ${SCRIPT_DIR}/dti.py ${SCRIPT_DIR}/__version__.py ${SCRIPT_DIR}/batch.py  ${S
 cp -R ${SCRIPT_DIR}/Install.app ${SCRIPT_DIR}/StructuralConnectomes.app ${SCRIPT_DIR}/scripts ${SCRIPT_DIR}/Subtract_FA.app  $install_dir
 
 # make symbolic link to StructuralConnectomes.app on desktop
-osascript -e 'tell application "Finder"' -e 'make new alias to file (posix file "/Applications/StructuralConnectomes/StructuralConnectomes.app") at desktop' -e 'end tell'
+command="osascript -e 'tell application \"Finder\"' -e 'make new alias to file (posix file \"$structural_connectomes_app\") at desktop' -e 'end tell'"
+echo $command
+eval "$command"
 
+# make symbolic link to Subtract_FA.app on desktop
+command="osascript -e 'tell application \"Finder\"' -e 'make new alias to file (posix file \"$fa_app\") at desktop' -e 'end tell'"
+echo $command
+eval "$command"
 
-# make symbolic link to StructuralConnectomes.app on desktop
-osascript -e 'tell application "Finder"' -e 'make new alias to file (posix file "/Applications/StructuralConnectomes/Subtract_FA.app") at desktop' -e 'end tell'
-
-# set $PATH environment variable so it includes /Applications/StructuralConnectomes folder
-export PATH=/Applications/StructuralConnectomes:$PATH
+# set $PATH environment variable so it includes /Users/$user/StructuralConnectomes folder
+export PATH="/Users/$user/StructuralConnectomes":$PATH
 
 # make entry script executable
-chmod 755 /Applications/StructuralConnectomes/StructuralConnectomes.sh
-chmod 755 /Applications/StructuralConnectomes/Subtract_FA.sh
+chmod 755 "/Users/$user/StructuralConnectomes/StructuralConnectomes.sh"
+chmod 755 "/Users/$user/StructuralConnectomes/Subtract_FA.sh"
 
 echo "StructuralConnectomes successfully installed!"

@@ -74,7 +74,7 @@ def find_convert_images(source_dir, out_dir, logger):
 
 
     # find MPRAGE with smallest voxel size and as close to isotropic as possible
-    json_mprage = [s for s in json_files if ("MPRAGE" or "mprage") in s]
+    json_mprage = [s for s in json_files if ("MPRAGE" in s) or ("mprage" in s) or ("T1" in s) or ("t1" in s)]
 
     # loop through json files, load them and ignore ones that don't have "ShimSetting" key. These
     # are NeuroQuant processed MPRAGE scans

@@ -173,18 +173,31 @@ def process_dti(image_dict, logger, args):
     data = json.load(file)
     df = pd.DataFrame.from_dict(data, orient='index')
     df.columns = ['info']
-    echo_spacing = df.iloc[42]['info']
+    try:
+        echo_spacing = df['info']['EffectiveEchoSpacing']
+    except:
+        logger.error("Effective Echo Spacing could not be found in DTI json file: %s  " %image_dict["dti"]["json"])
+        logger.error("Eddy correction could not be completed")
+        exit_gracefully(args, image_dict, logger,
+                        'Effective Echo Spacing could not be found in DTI json file:' + str(image_dict["dti"]["json"]))
+        return
+
     EPIfacto = int(regparams['EPI_Factor:'])
-    if df.iloc[47]['info'] == "j-":  # A to P
-        Phase = "0 -1 0"
-    elif df.iloc[47]['info'] == "j":  # P to A
-        Phase = "0 1 0"
-    elif df.iloc[47]['info'] == "i":  # L to R
-        Phase = "-1 0 0"
-    elif df.iloc[47]['info'] == "i-":  # R to L
-        Phase = "1 0 0"
-    else:
-        logger.error("Phase encoding direction could not be found in json file...")
+    try:
+        if df['info']['PhaseEncodingDirection'] == "j-":  # A to P
+            Phase = "0 -1 0"
+        elif df['info']['PhaseEncodingDirection'] == "j":  # P to A
+            Phase = "0 1 0"
+        elif df['info']['PhaseEncodingDirection'] == "i":  # L to R
+            Phase = "-1 0 0"
+        elif df['info']['PhaseEncodingDirection'] == "i-":  # R to L
+            Phase = "1 0 0"
+    except:
+        logger.error("Phase encoding direction could not be found in json file: %s  " %image_dict["dti"]["json"])
+        logger.error("Eddy correction could not be completed")
+        exit_gracefully(args, image_dict, logger,
+                        '"Phase encoding direction could not be found in json file:' + str(image_dict["dti"]["json"]))
+        return
     acqpfourth = 0.001 * ((EPIfacto * (echo_spacing * 1000)) - 1)
     acqp_params = Phase + ' ' + str(acqpfourth)
     acqpparamfinal = str(acqp_params)
@@ -949,4 +962,14 @@ def create_html(args,image_dict,error=None):
                             <a href="{GraphSimp}">Graph Radius Weighted:<a> {rad_w} <br>
                             <a href="{GraphSimp}">Assortativity Coefficient Binary:<a> {asso_b} <br>
                             <a href="{GraphSimp}">Assortativity Coefficient Weighted:<a> {asso_w} <br>
-                            <h2>Ad
+                            <h2>Additional Files</h2><br>
+                            <a href="{GraphTheoryMetrics}">All Graph Theory Metrics<a> <br>
+                            <a href="{Bin}">Binary Adjacency Matrix<a> <br>
+                            <a href="{DSIparam}">DSI Params File<a><br>
+                            <a href="{Weight}">Weighted Adjacency Matrix</a>
+                        </body>
+                    </html>
+                    '''
+    # 3. Write the html string as an HTML file
+    with open(join(args.dir, 'Structural_Connectomes', 'report.html'), 'w') as f:
+        f.write(html)
