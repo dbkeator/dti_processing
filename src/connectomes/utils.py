@@ -23,7 +23,7 @@ if platform.system() == 'Darwin':
     SCRIPTS_DIR = join(INSTALL_DIR,"scripts")
     ANTS_REG = "antsRegistrationSyn.sh"
     ANTS_APPLYWARP = "antsApplyTransform.sh"
-    DSSTUDIO_DOCKER = "dsistudio/dsistudio:latest"
+    DSSTUDIO_DOCKER = "dsistudio/dsistudio:chen-2021-12-16"
     FSL = "brainlife/fsl"
     DCM2NIIX = "xnat/dcm2niix"
 
@@ -34,7 +34,7 @@ elif platform.system() == 'Linux':
     SCRIPTS_DIR = join(INSTALL_DIR,"scripts")
     ANTS_REG = "antsRegistrationSyn.sh"
     ANTS_APPLYWARP = "antsApplyTransform.sh"
-    DSSTUDIO_DOCKER = "dsistudio/dsistudio:latest"
+    DSSTUDIO_DOCKER = "dsistudio/dsistudio:chen-2021-12-16"
     FSL = "brainlife/fsl"
     DCM2NIIX = "xnat/dcm2niix"
 
