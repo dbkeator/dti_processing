@@ -25,7 +25,7 @@ if platform.system() == 'Darwin':
     ANTS_APPLYWARP = "antsApplyTransform.sh"
     DSSTUDIO_DOCKER = "dsistudio/dsistudio:chen-2021-12-16"
     FSL = "brainlife/fsl"
-    DCM2NIIX = "xnat/dcm2niix"
+    DCM2NIIX = "xnat/dcm2niix:1.5"
 
 elif platform.system() == 'Linux':
     INSTALL_DIR = os.path.dirname(__file__)
@@ -37,7 +37,7 @@ elif platform.system() == 'Linux':
     ANTS_APPLYWARP = "antsApplyTransform.sh"
     DSSTUDIO_DOCKER = "dsistudio/dsistudio:chen-2021-12-16"
     FSL = "brainlife/fsl"
-    DCM2NIIX = "xnat/dcm2niix"
+    DCM2NIIX = "xnat/dcm2niix:1.5"
 
 else:
     print("ERROR: Unsupported Platform: %s" % platform.system())

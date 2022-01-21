@@ -151,9 +151,9 @@ def main(argv):
                 # check if image_dict does not contain valid images
                 if (len(image_dict['dti'])==0) or (len(image_dict['structural'])==0):
                     # clean up files and things
-                    if not isdir(join(args.dir, 'Structural_Connectomes')):
-                        os.mkdir(join(args.dir, 'Structural_Connectomes'))
-                        os.mkdir(join(args.dir, 'Structural_Connectomes', 'Files'))
+                    if not isdir(join(args.dir,dir, 'Structural_Connectomes')):
+                        os.mkdir(join(args.dir,dir, 'Structural_Connectomes'))
+                        os.mkdir(join(args.dir,dir, 'Structural_Connectomes', 'Files'))
                     else:
                         # check if 'Structural_Connectomes' directory or file exists, if so, delete it
                         if isdir(join(args.dir, dir, 'Structural_Connectomes')):
