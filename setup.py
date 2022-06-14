@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="dti_processing",
-    version="2.8.0",
+    version="2.9.0",
     author="David Keator",
     author_email="dbkeator@gmail.com",
     description="A package to compute structural connectomes",
