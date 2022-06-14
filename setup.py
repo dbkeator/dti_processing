@@ -4,16 +4,16 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="structuralconnectomes-dbkeator",
-    version="0.0.1",
+    name="dti_processing",
+    version="2.8.0",
     author="David Keator",
     author_email="dbkeator@gmail.com",
     description="A package to compute structural connectomes",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/dbkeator/structuralconnectomes",
+    url="https://github.com/dbkeator/dti_processing",
     project_urls={
-        "Bug Tracker": "https://github.com/dbkeator/structuralconnectomes/issues",
+        "Bug Tracker": "https://github.com/dbkeator/dti_processing/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
