@@ -1,7 +1,7 @@
 StructuralConnectomes - DTI Processing Toolkit
 ###############################################
 
-A set of Python scripts to process diffusion MRI data from DICOM through structural connectomes.  For instructions please see the user `[manual](https://github.com/dbkeator/dti_processing/blob/main/src/connectomes/User_Manual.docx)`.
+A set of Python scripts to process diffusion MRI data from DICOM through structural connectomes.  For instructions please see the user `[manual](https://github.com/dbkeator/dti_processing/blob/main/src/connectomes/User_Manual.docx)`_.
 
 
 Dependencies
